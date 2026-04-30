@@ -981,38 +981,38 @@ async function loadAnalyticPlans(uid = null) {
   try {
     if (!uid) uid = await odooAuth(cfg);
 
-    // Step 1: get all IDs matching the pattern via domain filter
+    // Get all IDs (no filter - we filter client-side)
     const allIds = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
       cfg.db, uid, cfg.pass,
       'account.analytic.account', 'search',
-      [[['name', '=like', '__-___-_____ %']]],
-      { limit: 0 }
+      [[]], { limit: 0 }
     ]);
 
-    console.log('Found ' + allIds.length + ' matching IDs');
+    console.log('Total IDs:', allIds.length);
 
-    // Step 2: read in batches of 500
-    let allPlans = [];
+    // Read in batches of 500
+    let allRecords = [];
     const batchSize = 500;
     for (let i = 0; i < allIds.length; i += batchSize) {
-      const batchIds = allIds.slice(i, i + batchSize);
+      const batch = allIds.slice(i, i + batchSize);
       const results = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
         cfg.db, uid, cfg.pass,
         'account.analytic.account', 'read',
-        [batchIds],
-        { fields: ['id', 'name'] }
+        [batch], { fields: ['id', 'name'] }
       ]);
-      allPlans = allPlans.concat(results);
+      allRecords = allRecords.concat(results);
     }
 
-    // Deduplicate by name and sort
-    const seenNames = new Set();
-    analyticPlans = allPlans
+    console.log('Total records read:', allRecords.length);
+
+    // Filter client-side: name must match XX-XXX-00000 at start
+    const codePattern = /^[A-Z]{2}-[A-Z]{3}-\d{5}/;
+    const seenIds = new Set();
+    analyticPlans = allRecords
       .filter(r => {
-        const name = r.name ? r.name.trim() : '';
-        if (seenNames.has(name)) return false;
-        seenNames.add(name);
-        return true;
+        if (seenIds.has(r.id)) return false;
+        seenIds.add(r.id);
+        return r.name && codePattern.test(r.name.trim());
       })
       .map(r => ({
         id:   r.id,
@@ -1021,7 +1021,7 @@ async function loadAnalyticPlans(uid = null) {
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    // Populate config searchable dropdown
+    // Populate config dropdown
     const currentJson = document.getElementById('cfg-analytic').value;
     const currentPlan = analyticPlans.find(p => p.json === currentJson);
     if (currentPlan) document.getElementById('cfg-analytic-search').value = currentPlan.name;
@@ -1076,13 +1076,13 @@ function filterAnalytic(id, query) {
   if (!filtered.length) {
     dd.innerHTML = '<div class="analytic-option empty">No results</div>';
   } else {
-    let items = '<div class="analytic-option" data-json="" data-name="None" onmousedown="pickAnalytic(event,' + id + ')">— None —</div>';
+    let items = '<div class="analytic-option" data-json="" data-name="None" onmousedown="pickAnalytic(event,&quot;' + id + '&quot;)">— None —</div>';
     filtered.forEach(function(p) {
       const div = document.createElement('div');
       div.className = 'analytic-option';
       div.setAttribute('data-json', p.json);
       div.setAttribute('data-name', p.name);
-      div.setAttribute('onmousedown', 'pickAnalytic(event,' + id + ')');
+      div.setAttribute('onmousedown', 'pickAnalytic(event,"' + id + '")' );
       div.textContent = p.name;
       items += div.outerHTML;
     });
@@ -1093,8 +1093,9 @@ function filterAnalytic(id, query) {
 
 function pickAnalytic(e, id) {
   e.preventDefault();
-  const json = e.currentTarget.getAttribute('data-json');
-  const name = e.currentTarget.getAttribute('data-name');
+  const el = e.currentTarget || e.target;
+  const json = el.getAttribute('data-json');
+  const name = el.getAttribute('data-name');
   document.getElementById('analytic-' + id).value = json;
   document.getElementById('analytic-search-' + id).value = name;
   document.getElementById('analytic-dd-' + id).classList.remove('open');
