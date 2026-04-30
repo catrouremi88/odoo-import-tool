@@ -1267,11 +1267,24 @@ async function loadCompanies() {
     ]);
     const div = document.getElementById('company-list');
     div.style.display = 'block';
-    div.innerHTML = companies.map(c =>
-      '<div style="padding:6px 10px;cursor:pointer;border-radius:6px;font-size:12px;font-family:monospace;background:var(--surface2);margin-bottom:4px" ' +
-      'onclick="document.getElementById('cfg-company').value=' + c.id + ';document.getElementById('company-list').style.display='none'">' +
-      c.id + ' — ' + c.name + '</div>'
-    ).join('');
+    div.innerHTML = companies.map(function(c) {
+      const el = document.createElement('div');
+      el.style.cssText = 'padding:6px 10px;cursor:pointer;border-radius:6px;font-size:12px;font-family:monospace;background:var(--surface2);margin-bottom:4px';
+      el.textContent = c.id + ' — ' + c.name;
+      el.onclick = function() {
+        document.getElementById('cfg-company').value = c.id;
+        document.getElementById('company-list').style.display = 'none';
+      };
+      return el.outerHTML;
+    }).join('');
+    // Re-attach onclick since outerHTML loses them
+    div.querySelectorAll('div').forEach(function(el, i) {
+      const c = companies[i];
+      el.onclick = function() {
+        document.getElementById('cfg-company').value = c.id;
+        div.style.display = 'none';
+      };
+    });
   } catch(e) {
     alert('Error: ' + e.message);
   }
