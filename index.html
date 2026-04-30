@@ -296,6 +296,14 @@
           <input type="text" id="cfg-account" placeholder="640100 Main Business Costs" />
         </div>
         <div class="form-group full">
+          <label>Company ID <span style="color:var(--muted);font-size:10px">(leave blank = use default)</span></label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="number" id="cfg-company" placeholder="e.g. 3" style="flex:1" />
+            <button class="btn btn-secondary" style="padding:8px 14px;font-size:11px" onclick="loadCompanies()">🏢 Browse</button>
+          </div>
+          <div id="company-list" style="display:none;margin-top:8px"></div>
+        </div>
+        <div class="form-group full">
           <label>Default Analytic Plan</label>
           <div style="display:flex;gap:8px;align-items:center">
             <div class="analytic-wrapper" style="flex:1">
@@ -437,6 +445,7 @@ function saveConfig() {
     currency: document.getElementById('cfg-currency').value.trim(),
     account:  document.getElementById('cfg-account').value.trim(),
     analytic: document.getElementById('cfg-analytic').value.trim(),
+    company: document.getElementById('cfg-company').value.trim(),
   };
   localStorage.setItem('odoo_cfg', JSON.stringify(cfg));
   showAlert('✅ Configuration saved!', 'success', 'cfg-url');
@@ -454,6 +463,7 @@ function loadConfig() {
   document.getElementById('cfg-currency').value = cfg.currency || 'CNY';
   document.getElementById('cfg-account').value  = cfg.account  || '';
   document.getElementById('cfg-analytic').value = cfg.analytic || '';
+  document.getElementById('cfg-company').value = cfg.company || '';
   return cfg;
 }
 
@@ -992,28 +1002,37 @@ async function loadAnalyticPlans(uid = null) {
       cfg.db, uid, cfg.pass,
       'res.users', 'read', [[uid]], { fields: ['company_id'] }
     ]);
-    const companyId = userInfo[0].company_id[0];
-    const companyName = userInfo[0].company_id[1];
-    console.log('Company:', companyId, companyName);
+    const cfgCompany = parseInt(document.getElementById('cfg-company').value);
+    const companyId = cfgCompany || userInfo[0].company_id[0];
+    console.log('Company:', companyId, userInfo[0].company_id[1]);
 
-    // Use search_read with allowed_company_ids context to respect multi-company rules
-    const results = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
+    // Step 1: get all IDs with company context
+    const allIds = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
       cfg.db, uid, cfg.pass,
-      'account.analytic.account', 'search_read',
+      'account.analytic.account', 'search',
       [[['company_id', 'in', [companyId, false]]]],
-      {
-        fields: ['id', 'name', 'company_id'],
-        context: { allowed_company_ids: [companyId] },
-        limit: 0
-      }
+      { context: { allowed_company_ids: [companyId] } }
     ]);
+    console.log('Total IDs:', allIds.length);
 
-    console.log('Total records:', results.length);
+    // Step 2: read in batches of 500
+    let allRecords = [];
+    const batchSize = 500;
+    for (let i = 0; i < allIds.length; i += batchSize) {
+      const batch = allIds.slice(i, i + batchSize);
+      const results = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
+        cfg.db, uid, cfg.pass,
+        'account.analytic.account', 'read',
+        [batch], { fields: ['id', 'name'] }
+      ]);
+      allRecords = allRecords.concat(results);
+    }
+    console.log('Total records read:', allRecords.length);
 
     // Filter client-side: name must match XX-XXX-00000 format, dedupe by name
     const codePattern = /^[A-Z]{2}-[A-Z]{3}-\d{5}/;
     const seenNames = new Set();
-    analyticPlans = results
+    analyticPlans = allRecords
       .filter(r => {
         const name = r.name ? r.name.trim() : '';
         if (!codePattern.test(name)) return false;
@@ -1230,6 +1249,31 @@ async function loadAnalyticPlansUI() {
     btn.textContent = '❌ Error';
     btn.disabled = false;
     setTimeout(() => { btn.textContent = '🔄 Load'; }, 3000);
+  }
+}
+
+// ── Load companies ───────────────────────────────────────────────────────────
+async function loadCompanies() {
+  const cfg = getCfg();
+  if (!cfg.url || !cfg.db || !cfg.user || !cfg.pass) {
+    alert('Please save configuration first.'); return;
+  }
+  try {
+    const uid = await odooAuth(cfg);
+    const companies = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
+      cfg.db, uid, cfg.pass,
+      'res.company', 'search_read', [[]],
+      { fields: ['id', 'name'], limit: 50 }
+    ]);
+    const div = document.getElementById('company-list');
+    div.style.display = 'block';
+    div.innerHTML = companies.map(c =>
+      '<div style="padding:6px 10px;cursor:pointer;border-radius:6px;font-size:12px;font-family:monospace;background:var(--surface2);margin-bottom:4px" ' +
+      'onclick="document.getElementById('cfg-company').value=' + c.id + ';document.getElementById('company-list').style.display='none'">' +
+      c.id + ' — ' + c.name + '</div>'
+    ).join('');
+  } catch(e) {
+    alert('Error: ' + e.message);
   }
 }
 
