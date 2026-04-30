@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Odoo — Import Vendor Bill</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f14;
+    --surface: #16181f;
+    --surface2: #1e2029;
+    --border: #2a2d3a;
+    --accent: #6c63ff;
+    --accent2: #00d4aa;
+    --danger: #ff4d6d;
+    --warn: #ffb830;
+    --text: #e8eaf0;
+    --muted: #6b7080;
+    --success: #00d4aa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Grid background ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 820px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  /* ── Header ── */
+  .header { margin-bottom: 48px; }
+  .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo-text { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; font-family: 'DM Mono', monospace; }
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+  h1 span { color: var(--accent); }
+  .subtitle { margin-top: 8px; color: var(--muted); font-size: 15px; font-weight: 400; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 32px; background: var(--surface); padding: 4px; border-radius: 10px; border: 1px solid var(--border); }
+  .tab {
+    flex: 1; padding: 10px; border: none; background: transparent;
+    color: var(--muted); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+    border-radius: 7px; cursor: pointer; transition: all 0.2s; letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .tab.active { background: var(--accent); color: white; }
+  .tab:hover:not(.active) { color: var(--text); background: var(--surface2); }
+
+  /* ── Panel ── */
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--accent); font-family: 'DM Mono', monospace; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title::before { content: '//'; opacity: 0.4; }
+
+  /* ── Form ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; font-family: 'DM Mono', monospace; }
+  input, select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 10px 14px;
+    transition: border-color 0.2s;
+    outline: none;
+    width: 100%;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 24px; border-radius: 9px; border: none;
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+    letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #5a52e0; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(108,99,255,0.3); }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-success { background: var(--accent2); color: #0e0f14; }
+  .btn-success:hover { background: #00bfa0; transform: translateY(-1px); }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+
+  /* ── Upload zone ── */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(108,99,255,0.05); }
+  .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .upload-icon { font-size: 40px; margin-bottom: 12px; }
+  .upload-text { font-size: 15px; font-weight: 600; color: var(--text); }
+  .upload-sub { font-size: 12px; color: var(--muted); margin-top: 4px; font-family: 'DM Mono', monospace; }
+  .upload-filename { margin-top: 12px; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--accent2); }
+
+  /* ── Preview table ── */
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: 'DM Mono', monospace; }
+  th { background: var(--surface2); color: var(--muted); padding: 10px 14px; text-align: left; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; }
+  td { padding: 10px 14px; border-top: 1px solid var(--border); color: var(--text); }
+  tr:hover td { background: var(--surface2); }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .badge-ok { background: rgba(0,212,170,0.15); color: var(--accent2); }
+  .badge-warn { background: rgba(255,184,48,0.15); color: var(--warn); }
+
+  /* ── Log ── */
+  .log {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    max-height: 280px;
+    overflow-y: auto;
+    margin-top: 16px;
+  }
+  .log-line { padding: 3px 0; line-height: 1.5; }
+  .log-line.ok { color: var(--accent2); }
+  .log-line.err { color: var(--danger); }
+  .log-line.warn { color: var(--warn); }
+  .log-line.info { color: var(--muted); }
+
+  /* ── Progress ── */
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin: 16px 0; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; transition: width 0.3s ease; width: 0%; }
+
+  /* ── Alert ── */
+  .alert { padding: 12px 16px; border-radius: 9px; font-size: 13px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; }
+  .alert-info { background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.3); color: #a9a3ff; }
+  .alert-success { background: rgba(0,212,170,0.1); border: 1px solid rgba(0,212,170,0.3); color: var(--accent2); }
+  .alert-error { background: rgba(255,77,109,0.1); border: 1px solid rgba(255,77,109,0.3); color: var(--danger); }
+
+  /* ── Status dot ── */
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot-ok { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+  .dot-err { background: var(--danger); }
+  .dot-idle { background: var(--muted); }
+
+  /* ── Footer ── */
+  .footer { margin-top: 48px; text-align: center; color: var(--muted); font-size: 11px; font-family: 'DM Mono', monospace; }
+
+  .conn-status { display: flex; align-items: center; font-size: 12px; font-family: 'DM Mono', monospace; color: var(--muted); margin-top: 12px; }
+
+  .result-link { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--accent); text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">📥</div>
+      <div class="logo-text">Odoo Tools</div>
+    </div>
+    <h1>Import <span>Vendor Bill</span></h1>
+    <p class="subtitle">Créez des factures fournisseurs multi-lignes dans Odoo depuis un fichier Excel.</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('config')">⚙️ Configuration</button>
+    <button class="tab" onclick="switchTab('import')">📂 Import Excel</button>
+    <button class="tab" onclick="switchTab('manuel')">✏️ Saisie manuelle</button>
+  </div>
+
+  <!-- ══ TAB CONFIG ══ -->
+  <div class="panel active" id="tab-config">
+    <div class="card">
+      <div class="card-title">Connexion Odoo</div>
+      <div class="alert alert-info">💡 Ces informations sont sauvegardées uniquement dans votre navigateur (localStorage). Elles ne sont jamais envoyées à un tiers.</div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>URL Odoo</label>
+          <input type="text" id="cfg-url" placeholder="https://altios-china.run-odoo.com" />
+        </div>
+        <div class="form-group">
+          <label>Base de données</label>
+          <input type="text" id="cfg-db" placeholder="china" />
+        </div>
+        <div class="form-group">
+          <label>Email utilisateur</label>
+          <input type="email" id="cfg-user" placeholder="comptable@entreprise.com" />
+        </div>
+        <div class="form-group full">
+          <label>Mot de passe</label>
+          <input type="password" id="cfg-pass" placeholder="••••••••" />
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveConfig()">💾 Sauvegarder</button>
+        <button class="btn btn-secondary" onclick="testConnection()">🔌 Tester la connexion</button>
+      </div>
+      <div class="conn-status" id="conn-status">
+        <span class="status-dot dot-idle" id="conn-dot"></span>
+        <span id="conn-text">Non testé</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Valeurs par défaut</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Journal par défaut</label>
+          <input type="text" id="cfg-journal" placeholder="Vendor Bills" />
+        </div>
+        <div class="form-group">
+          <label>Devise par défaut</label>
+          <input type="text" id="cfg-currency" placeholder="CNY" />
+        </div>
+        <div class="form-group full">
+          <label>Compte de charge par défaut</label>
+          <input type="text" id="cfg-account" placeholder="640100 Main Business Costs" />
+        </div>
+        <div class="form-group full">
+          <label>Distribution analytique par défaut (JSON)</label>
+          <input type="text" id="cfg-analytic" placeholder='{"582": 100.0}' />
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveConfig()">💾 Sauvegarder les défauts</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB IMPORT ══ -->
+  <div class="panel" id="tab-import">
+    <div class="card">
+      <div class="card-title">Upload fichier Excel</div>
+      <div class="alert alert-info">📋 Format attendu : colonnes <strong>Fournisseur, Date, Échéance, Produit, Label, Compte, Analytique, Quantité, Prix</strong> — ou utilisez le template ci-dessous.</div>
+
+      <div class="upload-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".xlsx,.xls,.csv" onchange="handleFile(this)" />
+        <div class="upload-icon">📊</div>
+        <div class="upload-text">Glissez votre fichier ici</div>
+        <div class="upload-sub">.xlsx / .xls / .csv acceptés</div>
+        <div class="upload-filename" id="file-name"></div>
+      </div>
+
+      <div id="preview-section" style="display:none; margin-top:20px;">
+        <div class="card-title" style="margin-bottom:12px;">Aperçu des lignes détectées</div>
+        <div class="table-wrap">
+          <table id="preview-table">
+            <thead><tr id="preview-head"></tr></thead>
+            <tbody id="preview-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-success" id="btn-import-excel" onclick="importFromExcel()" disabled>🚀 Importer dans Odoo</button>
+        <button class="btn btn-secondary" onclick="downloadTemplate()">⬇️ Télécharger le template</button>
+      </div>
+    </div>
+
+    <div id="import-result" style="display:none;">
+      <div class="card">
+        <div class="card-title">Résultat de l'import</div>
+        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+        <div class="log" id="import-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB MANUEL ══ -->
+  <div class="panel" id="tab-manuel">
+    <div class="card">
+      <div class="card-title">En-tête de la facture</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Fournisseur *</label>
+          <input type="text" id="m-partner" placeholder="Nom exact dans Odoo" />
+        </div>
+        <div class="form-group">
+          <label>Référence fournisseur</label>
+          <input type="text" id="m-ref" placeholder="REF-2026-001" />
+        </div>
+        <div class="form-group">
+          <label>Date de la facture</label>
+          <input type="date" id="m-date" />
+        </div>
+        <div class="form-group">
+          <label>Date d'échéance</label>
+          <input type="date" id="m-due" />
+        </div>
+        <div class="form-group">
+          <label>Journal</label>
+          <input type="text" id="m-journal" placeholder="Vendor Bills" />
+        </div>
+        <div class="form-group">
+          <label>Devise</label>
+          <input type="text" id="m-currency" placeholder="CNY" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Lignes de facture</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Produit</th>
+              <th>Label</th>
+              <th>Compte</th>
+              <th>Analytique</th>
+              <th>Qté</th>
+              <th>Prix unit.</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="lines-body"></tbody>
+        </table>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="addLine()">＋ Ajouter une ligne</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-success" onclick="importManual()">🚀 Créer dans Odoo</button>
+    </div>
+
+    <div id="manual-result" style="display:none; margin-top:20px;">
+      <div class="card">
+        <div class="card-title">Résultat</div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-m"></div></div>
+        <div class="log" id="manual-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Odoo Import Tool — Données stockées localement • Aucune transmission externe</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+function saveConfig() {
+  const cfg = {
+    url:      document.getElementById('cfg-url').value.trim().replace(/\/$/, ''),
+    db:       document.getElementById('cfg-db').value.trim(),
+    user:     document.getElementById('cfg-user').value.trim(),
+    pass:     document.getElementById('cfg-pass').value,
+    journal:  document.getElementById('cfg-journal').value.trim(),
+    currency: document.getElementById('cfg-currency').value.trim(),
+    account:  document.getElementById('cfg-account').value.trim(),
+    analytic: document.getElementById('cfg-analytic').value.trim(),
+  };
+  localStorage.setItem('odoo_cfg', JSON.stringify(cfg));
+  showAlert('✅ Configuration sauvegardée !', 'success', 'cfg-url');
+}
+
+function loadConfig() {
+  const raw = localStorage.getItem('odoo_cfg');
+  if (!raw) return {};
+  const cfg = JSON.parse(raw);
+  document.getElementById('cfg-url').value      = cfg.url      || '';
+  document.getElementById('cfg-db').value       = cfg.db       || '';
+  document.getElementById('cfg-user').value     = cfg.user     || '';
+  document.getElementById('cfg-pass').value     = cfg.pass     || '';
+  document.getElementById('cfg-journal').value  = cfg.journal  || 'Vendor Bills';
+  document.getElementById('cfg-currency').value = cfg.currency || 'CNY';
+  document.getElementById('cfg-account').value  = cfg.account  || '';
+  document.getElementById('cfg-analytic').value = cfg.analytic || '';
+  return cfg;
+}
+
+function getCfg() {
+  const raw = localStorage.getItem('odoo_cfg');
+  return raw ? JSON.parse(raw) : {};
+}
+
+// ── XML-RPC ───────────────────────────────────────────────────────────────────
+function xmlrpcCall(url, method, params) {
+  const body = `<?xml version="1.0"?>
+<methodCall>
+  <methodName>${method}</methodName>
+  <params>${params.map(p => `<param><value>${toXml(p)}</value></param>`).join('')}</params>
+</methodCall>`;
+
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/xml' },
+    body
+  }).then(r => r.text()).then(parseXmlrpc);
+}
+
+function toXml(val) {
+  if (val === null || val === undefined) return '<nil/>';
+  if (typeof val === 'boolean') return `<boolean>${val ? 1 : 0}</boolean>`;
+  if (typeof val === 'number') return Number.isInteger(val) ? `<int>${val}</int>` : `<double>${val}</double>`;
+  if (typeof val === 'string') return `<string>${escXml(val)}</string>`;
+  if (Array.isArray(val)) return `<array><data>${val.map(v => `<value>${toXml(v)}</value>`).join('')}</data></array>`;
+  if (typeof val === 'object') {
+    const members = Object.entries(val).map(([k, v]) =>
+      `<member><name>${escXml(k)}</name><value>${toXml(v)}</value></member>`).join('');
+    return `<struct>${members}</struct>`;
+  }
+  return `<string>${escXml(String(val))}</string>`;
+}
+
+function escXml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function parseXmlrpc(xml) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'text/xml');
+  const fault = doc.querySelector('fault');
+  if (fault) {
+    const msg = fault.querySelector('string')?.textContent || 'Unknown fault';
+    throw new Error(msg);
+  }
+  const val = doc.querySelector('methodResponse > params > param > value');
+  return parseXmlVal(val);
+}
+
+function parseXmlVal(node) {
+  if (!node) return null;
+  const child = node.children[0];
+  if (!child) return node.textContent;
+  switch (child.tagName) {
+    case 'int': case 'i4': case 'i8': return parseInt(child.textContent);
+    case 'double': return parseFloat(child.textContent);
+    case 'boolean': return child.textContent === '1';
+    case 'string': return child.textContent;
+    case 'nil': return null;
+    case 'array': return Array.from(child.querySelector('data').children).map(parseXmlVal);
+    case 'struct': {
+      const obj = {};
+      child.querySelectorAll('member').forEach(m => {
+        obj[m.querySelector('name').textContent] = parseXmlVal(m.querySelector('value'));
+      });
+      return obj;
+    }
+    default: return child.textContent;
+  }
+}
+
+async function odooAuth(cfg) {
+  const uid = await xmlrpcCall(`${cfg.url}/xmlrpc/2/common`, 'authenticate',
+    [cfg.db, cfg.user, cfg.pass, {}]);
+  if (!uid) throw new Error('Authentification échouée — vérifiez email/mot de passe');
+  return uid;
+}
+
+async function odooSearch(cfg, uid, model, domain) {
+  return xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw',
+    [cfg.db, uid, cfg.pass, model, 'search', [domain]]);
+}
+
+async function odooCreate(cfg, uid, model, vals) {
+  return xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw',
+    [cfg.db, uid, cfg.pass, model, 'create', [vals]]);
+}
+
+async function resolveId(cfg, uid, model, field, value, log) {
+  const ids = await odooSearch(cfg, uid, model, [[field, '=', value]]);
+  if (!ids || ids.length === 0) throw new Error(`"${value}" introuvable dans ${model}`);
+  log(`   ↳ ${value} → id=${ids[0]}`, 'ok');
+  return ids[0];
+}
+
+// ── Test connexion ────────────────────────────────────────────────────────────
+async function testConnection() {
+  const cfg = getCfg();
+  if (!cfg.url || !cfg.db || !cfg.user || !cfg.pass) {
+    alert('Complétez et sauvegardez la configuration d\'abord.');
+    return;
+  }
+  const dot  = document.getElementById('conn-dot');
+  const text = document.getElementById('conn-text');
+  dot.className = 'status-dot dot-idle'; text.textContent = 'Test en cours...';
+  try {
+    const uid = await odooAuth(cfg);
+    dot.className = 'status-dot dot-ok';
+    text.textContent = `Connecté ✓ (uid=${uid})`;
+    text.style.color = 'var(--accent2)';
+  } catch(e) {
+    dot.className = 'status-dot dot-err';
+    text.textContent = `Erreur : ${e.message}`;
+    text.style.color = 'var(--danger)';
+  }
+}
+
+// ── Tab switch ────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ── File handling ─────────────────────────────────────────────────────────────
+let parsedLines = [], parsedHeader = {};
+
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('file-name').textContent = '📎 ' + file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(ws, { raw: false, defval: '' });
+    if (!data.length) { alert('Fichier vide ou non reconnu.'); return; }
+    parseExcelData(data);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseExcelData(data) {
+  // Try to detect header row vs line rows
+  const cfg = getCfg();
+  parsedLines = [];
+  parsedHeader = { journal: cfg.journal || 'Vendor Bills', currency: cfg.currency || 'CNY' };
+
+  const keys = Object.keys(data[0]).map(k => k.toLowerCase().trim());
+
+  const find = (...names) => {
+    for (const n of names) {
+      const k = Object.keys(data[0]).find(k => k.toLowerCase().includes(n));
+      if (k) return k;
+    }
+    return null;
+  };
+
+  const kPartner  = find('fournisseur', 'vendor', 'partner', 'supplier');
+  const kDate     = find('date facture', 'invoice date', 'bill date', 'date');
+  const kDue      = find('échéance', 'due', 'echeance');
+  const kJournal  = find('journal');
+  const kProduct  = find('produit', 'product');
+  const kLabel    = find('label', 'description', 'libellé');
+  const kAccount  = find('compte', 'account');
+  const kAnalytic = find('analytique', 'analytic');
+  const kQty      = find('quantité', 'quantity', 'qté', 'qty');
+  const kPrice    = find('prix', 'price', 'unit');
+  const kRef      = find('référence', 'reference', 'ref');
+
+  data.forEach((row, i) => {
+    const isHeader = i === 0 || row[kPartner] || row[kDate] || row[kJournal];
+    if (i === 0 && kPartner) parsedHeader.partner  = row[kPartner];
+    if (i === 0 && kDate)    parsedHeader.date      = row[kDate];
+    if (i === 0 && kDue)     parsedHeader.due       = row[kDue];
+    if (i === 0 && kJournal && row[kJournal]) parsedHeader.journal = row[kJournal];
+    if (i === 0 && kRef)     parsedHeader.ref       = row[kRef];
+
+    const account  = kAccount  ? row[kAccount]  : cfg.account;
+    const analytic = kAnalytic ? row[kAnalytic] : cfg.analytic;
+    const qty      = parseFloat((kQty ? row[kQty] : '1') || 1);
+    const price    = parseFloat((kPrice ? row[kPrice] : '0') || 0);
+    const label    = kLabel ? row[kLabel] : (kProduct ? row[kProduct] : '');
+    const product  = kProduct ? row[kProduct] : '';
+
+    if (!account && !product) return;
+    parsedLines.push({ product, label, account, analytic, qty, price });
+  });
+
+  showPreview();
+  document.getElementById('btn-import-excel').disabled = parsedLines.length === 0;
+}
+
+function showPreview() {
+  if (!parsedLines.length) return;
+  document.getElementById('preview-section').style.display = 'block';
+
+  const head = document.getElementById('preview-head');
+  const body = document.getElementById('preview-body');
+  head.innerHTML = ['Produit','Label','Compte','Analytique','Qté','Prix'].map(h => `<th>${h}</th>`).join('');
+  body.innerHTML = parsedLines.map(l => `
+    <tr>
+      <td>${l.product || '—'}</td>
+      <td>${l.label || '—'}</td>
+      <td>${l.account || '<span class="badge badge-warn">⚠ manquant</span>'}</td>
+      <td><span class="badge badge-ok">${l.analytic ? '✓' : '—'}</span></td>
+      <td>${l.qty}</td>
+      <td>${Number(l.price).toLocaleString('fr-FR', {minimumFractionDigits:2})}</td>
+    </tr>`).join('');
+}
+
+// ── Import from Excel ─────────────────────────────────────────────────────────
+async function importFromExcel() {
+  document.getElementById('import-result').style.display = 'block';
+  await runImport(parsedHeader, parsedLines, 'import-log', 'progress');
+}
+
+// ── Manual form ───────────────────────────────────────────────────────────────
+let lineCount = 0;
+
+function addLine(data = {}) {
+  const cfg = getCfg();
+  lineCount++;
+  const id = lineCount;
+  const tr = document.createElement('tr');
+  tr.id = `line-${id}`;
+  tr.innerHTML = `
+    <td><input type="text" value="${data.product||''}" placeholder="INC - Payroll Expenses" style="width:140px"/></td>
+    <td><input type="text" value="${data.label||''}" placeholder="Label" style="width:140px"/></td>
+    <td><input type="text" value="${data.account||cfg.account||''}" placeholder="640100..." style="width:160px"/></td>
+    <td><input type="text" value="${data.analytic||cfg.analytic||''}" placeholder='{"582":100}' style="width:110px;font-size:11px"/></td>
+    <td><input type="number" value="${data.qty||1}" style="width:60px"/></td>
+    <td><input type="number" value="${data.price||''}" placeholder="0.00" style="width:90px"/></td>
+    <td><button onclick="document.getElementById('line-${id}').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px">✕</button></td>`;
+  document.getElementById('lines-body').appendChild(tr);
+}
+
+function getManualLines() {
+  return Array.from(document.querySelectorAll('#lines-body tr')).map(tr => {
+    const inputs = tr.querySelectorAll('input');
+    return {
+      product:  inputs[0].value.trim(),
+      label:    inputs[1].value.trim(),
+      account:  inputs[2].value.trim(),
+      analytic: inputs[3].value.trim(),
+      qty:      parseFloat(inputs[4].value) || 1,
+      price:    parseFloat(inputs[5].value) || 0,
+    };
+  }).filter(l => l.account || l.product);
+}
+
+async function importManual() {
+  const cfg = getCfg();
+  const header = {
+    partner:  document.getElementById('m-partner').value.trim(),
+    date:     document.getElementById('m-date').value,
+    due:      document.getElementById('m-due').value,
+    journal:  document.getElementById('m-journal').value.trim() || cfg.journal || 'Vendor Bills',
+    currency: document.getElementById('m-currency').value.trim() || cfg.currency || 'CNY',
+    ref:      document.getElementById('m-ref').value.trim(),
+  };
+  const lines = getManualLines();
+  if (!lines.length) { alert('Ajoutez au moins une ligne.'); return; }
+  document.getElementById('manual-result').style.display = 'block';
+  await runImport(header, lines, 'manual-log', 'progress-m');
+}
+
+// ── Core import ───────────────────────────────────────────────────────────────
+async function runImport(header, lines, logId, progressId) {
+  const logEl = document.getElementById(logId);
+  const progEl = document.getElementById(progressId);
+  logEl.innerHTML = '';
+  progEl.style.width = '0%';
+
+  const log = (msg, type='info') => {
+    const d = document.createElement('div');
+    d.className = `log-line ${type}`;
+    d.textContent = msg;
+    logEl.appendChild(d);
+    logEl.scrollTop = logEl.scrollHeight;
+  };
+
+  const progress = pct => { progEl.style.width = pct + '%'; };
+
+  const cfg = getCfg();
+  if (!cfg.url || !cfg.db || !cfg.user || !cfg.pass) {
+    log('❌ Configuration incomplète. Allez dans l\'onglet Configuration.', 'err'); return;
+  }
+
+  try {
+    log('🔌 Connexion à Odoo...', 'info');
+    const uid = await odooAuth(cfg);
+    log(`✅ Connecté (uid=${uid})`, 'ok');
+    progress(10);
+
+    log('📋 Résolution du journal...', 'info');
+    const journalName = header.journal || cfg.journal || 'Vendor Bills';
+    const journalId = await resolveId(cfg, uid, 'account.journal', 'name', journalName, log);
+    progress(20);
+
+    let partnerId = null;
+    if (header.partner) {
+      log(`👤 Résolution du fournisseur: ${header.partner}`, 'info');
+      partnerId = await resolveId(cfg, uid, 'res.partner', 'name', header.partner, log);
+    }
+    progress(30);
+
+    let currencyId = null;
+    const currencyName = header.currency || cfg.currency;
+    if (currencyName) {
+      log(`💱 Résolution de la devise: ${currencyName}`, 'info');
+      currencyId = await resolveId(cfg, uid, 'res.currency', 'name', currencyName, log);
+    }
+    progress(40);
+
+    log(`📝 Préparation de ${lines.length} ligne(s)...`, 'info');
+    const invoiceLines = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const accountName = line.account || cfg.account;
+      if (!accountName) { log(`⚠️  Ligne ${i+1}: compte manquant, ignorée`, 'warn'); continue; }
+
+      log(`   Ligne ${i+1}: ${line.label || line.product}`, 'info');
+      const accountId = await resolveId(cfg, uid, 'account.account', 'name', accountName, log);
+
+      let productId = null;
+      if (line.product) {
+        try { productId = await resolveId(cfg, uid, 'product.product', 'name', line.product, log); }
+        catch(e) { log(`   ⚠️  Produit "${line.product}" non trouvé, ignoré`, 'warn'); }
+      }
+
+      const lineVals = {
+        name:       line.label || line.product || accountName,
+        account_id: accountId,
+        quantity:   line.qty,
+        price_unit: line.price,
+      };
+      if (productId) lineVals.product_id = productId;
+
+      const analyticRaw = line.analytic || cfg.analytic;
+      if (analyticRaw) {
+        try { lineVals.analytic_distribution = JSON.parse(analyticRaw); }
+        catch(e) { log(`   ⚠️  JSON analytique invalide: ${analyticRaw}`, 'warn'); }
+      }
+
+      invoiceLines.push([0, 0, lineVals]);
+      progress(40 + Math.round((i + 1) / lines.length * 40));
+    }
+
+    if (!invoiceLines.length) { log('❌ Aucune ligne valide à importer.', 'err'); return; }
+
+    log('🚀 Création de la vendor bill...', 'info');
+    const vals = {
+      move_type:        'in_invoice',
+      journal_id:       journalId,
+      invoice_line_ids: invoiceLines,
+    };
+    if (partnerId)  vals.partner_id      = partnerId;
+    if (currencyId) vals.currency_id     = currencyId;
+    if (header.date) vals.invoice_date   = header.date;
+    if (header.due)  vals.invoice_date_due = header.due;
+    if (header.ref)  vals.ref            = header.ref;
+
+    const billId = await odooCreate(cfg, uid, 'account.move', vals);
+    progress(100);
+    log(`✅ Vendor Bill créée avec succès ! ID = ${billId}`, 'ok');
+    log(`🔗 ${cfg.url}/web#id=${billId}&model=account.move&view_type=form`, 'ok');
+
+  } catch(e) {
+    log(`❌ Erreur : ${e.message}`, 'err');
+    progress(0);
+  }
+}
+
+// ── Template download ─────────────────────────────────────────────────────────
+function downloadTemplate() {
+  const cfg = getCfg();
+  const wb = XLSX.utils.book_new();
+  const data = [
+    ['Fournisseur','Date facture','Date échéance','Journal','Devise','Référence','Produit','Label','Compte','Analytique','Quantité','Prix unitaire'],
+    ['Nom Fournisseur Odoo','2026-04-30','2026-04-30', cfg.journal||'Vendor Bills', cfg.currency||'CNY','REF-001','INC - Payroll Expenses','INC - Payroll Expenses', cfg.account||'640100 Main Business Costs', cfg.analytic||'{"582": 100.0}',1,26173],
+    ['','','','','','','INC - Payroll Expenses','INC - Payroll Expenses', cfg.account||'640100 Main Business Costs', cfg.analytic||'{"582": 100.0}',1,12197.61],
+    ['','','','','','','INC - Travel Expenses','INC - Travel Expenses', cfg.account||'640100 Main Business Costs', cfg.analytic||'{"582": 100.0}',1,14971.20],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = data[0].map(() => ({ wch: 22 }));
+  XLSX.utils.book_append_sheet(wb, ws, 'Import');
+  XLSX.writeFile(wb, 'vendor_bill_template.xlsx');
+}
+
+// ── Drag & drop ───────────────────────────────────────────────────────────────
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    document.getElementById('file-name').textContent = '📎 ' + file.name;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const wb = XLSX.read(ev.target.result, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { raw: false, defval: '' });
+      if (data.length) parseExcelData(data);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+});
+
+function showAlert(msg, type, nearId) {
+  const el = document.getElementById(nearId);
+  const div = document.createElement('div');
+  div.className = `alert alert-${type}`;
+  div.textContent = msg;
+  div.style.marginTop = '12px';
+  el.closest('.card').appendChild(div);
+  setTimeout(() => div.remove(), 3000);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadConfig();
+// Pre-fill manual dates
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('m-date').value = today;
+document.getElementById('m-due').value = today;
+// Add default manual line
+addLine();
+</script>
+</body>
+</html>
