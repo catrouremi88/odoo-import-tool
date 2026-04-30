@@ -930,15 +930,20 @@ async function runImport(header, lines, logId, progressId) {
 // ── Template download ─────────────────────────────────────────────────────────
 function downloadTemplate() {
   const cfg = getCfg();
-  const wb = XLSX.utils.book_new();
-  const data = [
-    ['Fournisseur','Date facture','Date échéance','Journal','Devise','Référence','Produit','Label','Compte','Analytique','Quantité','Prix unitaire'],
-    ['Nom Fournisseur Odoo','2026-04-30','2026-04-30', cfg.journal||'Vendor Bills', cfg.currency||'CNY','REF-001','INC - Payroll Expenses','INC - Payroll Expenses', cfg.account||'640100 Main Business Costs', cfg.analytic||'{"582": 100.0}',1,26173],
-    ['','','','','','','INC - Payroll Expenses','INC - Payroll Expenses', cfg.account||'640100 Main Business Costs', cfg.analytic||'{"582": 100.0}',1,12197.61],
-    ['','','','','','','INC - Travel Expenses','INC - Travel Expenses', cfg.account||'640100 Main Business Costs', cfg.analytic||'{"582": 100.0}',1,14971.20],
+  const headers = [
+    'partner_id', 'invoice_date', 'invoice_date_due', 'journal_id', 'currency_id', 'ref',
+    'invoice_line_ids/product_id', 'invoice_line_ids/name', 'invoice_line_ids/account_id',
+    'invoice_line_ids/analytic_distribution', 'invoice_line_ids/quantity', 'invoice_line_ids/price_unit'
   ];
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  ws['!cols'] = data[0].map(() => ({ wch: 22 }));
+  const rows = [
+    ['Vendor Name', '2026-04-30', '2026-04-30', cfg.journal||'Vendor Bills', cfg.currency||'CNY', '',
+     'INC - Payroll Expenses', 'INC - Payroll Expenses', cfg.account||'640100', '', 1, 0],
+    ['', '', '', '', '', '', 'INC - Payroll Expenses', 'INC - Payroll Expenses', cfg.account||'640100', '', 1, 0],
+    ['', '', '', '', '', '', 'INC - Travel Expenses',  'INC - Travel Expenses',  cfg.account||'640100', '', 1, 0],
+  ];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = headers.map((h, i) => ({ wch: i === 9 ? 25 : i <= 5 ? 16 : 22 }));
   XLSX.utils.book_append_sheet(wb, ws, 'Import');
   XLSX.writeFile(wb, 'vendor_bill_template.xlsx');
 }
