@@ -1045,14 +1045,15 @@ function buildAnalyticSelect(id, currentJson) {
   const current = analyticPlans.find(p => p.json === currentJson);
   const currentName = current ? current.name : (currentJson ? currentJson : '');
   const safeId = 'aid' + String(id).replace(/[^a-zA-Z0-9]/g, '_');
+  const q1 = "'";
   return '<div class="analytic-wrapper" style="width:200px">' +
     '<input type="text" class="analytic-search" id="analytic-search-' + safeId + '"' +
-    ' placeholder="🔍 Search..." value="' + currentName.replace(/"/g, '&quot;') + '"' +
+    ' placeholder="Search..." value="' + currentName.replace(/"/g, '&quot;') + '"' +
     ' autocomplete="off"' +
-    ' oninput="filterAnalytic('' + safeId + '', this.value)"' +
-    ' onfocus="openAnalyticDropdown('' + safeId + '')"' +
-    ' onblur="closeAnalyticDropdown('' + safeId + '')"' +
-    ' onkeydown="navAnalytic(event, '' + safeId + '')" />' +
+    ' oninput="filterAnalytic(' + q1 + safeId + q1 + ', this.value)"' +
+    ' onfocus="openAnalyticDropdown(' + q1 + safeId + q1 + ')"' +
+    ' onblur="closeAnalyticDropdown(' + q1 + safeId + q1 + ')"' +
+    ' onkeydown="navAnalytic(event, ' + q1 + safeId + q1 + ')" />' +
     '<input type="hidden" class="analytic-select" id="analytic-' + safeId + '" value="' + currentJson.replace(/"/g, '&quot;') + '" />' +
     '<div class="analytic-dropdown" id="analytic-dd-' + safeId + '"></div>' +
     '</div>';
