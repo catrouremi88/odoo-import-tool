@@ -996,14 +996,14 @@ async function loadAnalyticPlans(uid = null) {
       offset += pageSize;
     }
 
-    // Filter: only plans matching XX-XXX-00000 format, deduplicate by ID, sort
+    // Filter: only plans where name starts with XX-XXX-00000 format
     const codePattern = /^[A-Z]{2}-[A-Z]{3}-\d{5}/;
     const seen = new Set();
     analyticPlans = allPlans
       .filter(r => {
         if (seen.has(r.id)) return false;
         seen.add(r.id);
-        return codePattern.test(r.name);
+        return codePattern.test(r.name ? r.name.trim() : '');
       })
       .map(r => ({
         id:   r.id,
