@@ -202,6 +202,29 @@
   .conn-status { display: flex; align-items: center; font-size: 12px; font-family: 'DM Mono', monospace; color: var(--muted); margin-top: 12px; }
 
   .result-link { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--accent); text-decoration: underline; }
+
+  /* ── Searchable dropdown ── */
+  .analytic-wrapper { position: relative; display: inline-block; }
+  .analytic-search {
+    width: 100%; padding: 8px 12px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .analytic-search:focus { border-color: var(--accent); }
+  .analytic-dropdown {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 999;
+    background: var(--surface2); border: 1px solid var(--accent);
+    border-radius: 8px; max-height: 200px; overflow-y: auto;
+    display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .analytic-dropdown.open { display: block; }
+  .analytic-option {
+    padding: 8px 12px; font-size: 11px; font-family: 'DM Mono', monospace;
+    cursor: pointer; color: var(--text); transition: background 0.15s;
+  }
+  .analytic-option:hover, .analytic-option.highlighted { background: var(--accent); color: white; }
+  .analytic-option.empty { color: var(--muted); font-style: italic; }
 </style>
 </head>
 <body>
@@ -275,9 +298,15 @@
         <div class="form-group full">
           <label>Plan analytique par défaut</label>
           <div style="display:flex;gap:8px;align-items:center">
-            <select id="cfg-analytic-select" style="flex:1">
-              <option value="">-- Sélectionner après connexion --</option>
-            </select>
+            <div class="analytic-wrapper" style="flex:1">
+              <input type="text" class="analytic-search" id="cfg-analytic-search"
+                placeholder="🔍 Rechercher un plan analytique..."
+                autocomplete="off"
+                oninput="filterAnalyticCfg(this.value)"
+                onfocus="document.getElementById('cfg-analytic-dd').classList.add('open')"
+                onblur="setTimeout(()=>document.getElementById('cfg-analytic-dd').classList.remove('open'),200)" />
+              <div class="analytic-dropdown" id="cfg-analytic-dd"></div>
+            </div>
             <button class="btn btn-secondary" style="padding:8px 14px;font-size:11px" onclick="loadAnalyticPlans()">🔄 Charger</button>
           </div>
           <input type="hidden" id="cfg-analytic" />
@@ -916,11 +945,91 @@ async function loadAnalyticPlans(uid = null) {
 }
 
 function buildAnalyticSelect(id, currentJson = '') {
-  const opts = analyticPlans.length
-    ? analyticPlans.map(p => `<option value="${p.json}" ${p.json === currentJson ? 'selected' : ''}>${p.name}</option>`).join('')
-    : `<option value="${currentJson}">${currentJson || '-- Connectez-vous --'}</option>`;
-  return `<select class="analytic-select" id="analytic-${id}" style="width:180px;font-size:11px">
-    <option value="">-- Aucun --</option>${opts}</select>`;
+  const current = analyticPlans.find(p => p.json === currentJson);
+  const currentName = current ? current.name : (currentJson ? currentJson : '');
+  return `<div class="analytic-wrapper" style="width:200px">
+    <input type="text" class="analytic-search" id="analytic-search-${id}"
+      placeholder="🔍 Rechercher..." value="${currentName}"
+      autocomplete="off"
+      oninput="filterAnalytic(${id}, this.value)"
+      onfocus="openAnalyticDropdown(${id})"
+      onblur="closeAnalyticDropdown(${id})"
+      onkeydown="navAnalytic(event, ${id})" />
+    <input type="hidden" class="analytic-select" id="analytic-${id}" value="${currentJson}" />
+    <div class="analytic-dropdown" id="analytic-dd-${id}"></div>
+  </div>`;
+}
+
+function openAnalyticDropdown(id) {
+  filterAnalytic(id, document.getElementById(\`analytic-search-\${id}\`).value);
+  document.getElementById(\`analytic-dd-\${id}\`).classList.add('open');
+}
+
+function closeAnalyticDropdown(id) {
+  setTimeout(() => {
+    const dd = document.getElementById(\`analytic-dd-\${id}\`);
+    if (dd) dd.classList.remove('open');
+  }, 200);
+}
+
+function filterAnalytic(id, query) {
+  const dd = document.getElementById(\`analytic-dd-\${id}\`);
+  if (!dd) return;
+  const q = query.toLowerCase();
+  const filtered = analyticPlans.filter(p => p.name.toLowerCase().includes(q));
+  if (!filtered.length) {
+    dd.innerHTML = '<div class="analytic-option empty">Aucun résultat</div>';
+  } else {
+    dd.innerHTML = '<div class="analytic-option" onmousedown="selectAnalytic(event,' + id + ',\'\',\'-- Aucun --\')"  >— Aucun —</div>' +
+      filtered.map(p =>
+        \`<div class="analytic-option" onmousedown="selectAnalytic(event,\${id},\'\${p.json.replace(/'/g,\"\")}\',\'\${p.name.replace(/'/g,\"\")}\')">
+          \${p.name}
+        </div>\`
+      ).join('');
+  }
+  dd.classList.add('open');
+}
+
+function selectAnalytic(e, id, json, name) {
+  e.preventDefault();
+  document.getElementById(\`analytic-\${id}\`).value = json;
+  document.getElementById(\`analytic-search-\${id}\`).value = name;
+  document.getElementById(\`analytic-dd-\${id}\`).classList.remove('open');
+}
+
+function navAnalytic(e, id) {
+  const dd = document.getElementById(\`analytic-dd-\${id}\`);
+  const items = dd.querySelectorAll('.analytic-option:not(.empty)');
+  const highlighted = dd.querySelector('.highlighted');
+  let idx = Array.from(items).indexOf(highlighted);
+  if (e.key === 'ArrowDown') { e.preventDefault(); idx = Math.min(idx+1, items.length-1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); idx = Math.max(idx-1, 0); }
+  else if (e.key === 'Enter' && highlighted) { highlighted.dispatchEvent(new MouseEvent('mousedown')); return; }
+  else if (e.key === 'Escape') { closeAnalyticDropdown(id); return; }
+  items.forEach(i => i.classList.remove('highlighted'));
+  if (items[idx]) items[idx].classList.add('highlighted');
+}
+
+function filterAnalyticCfg(query) {
+  const dd = document.getElementById('cfg-analytic-dd');
+  if (!dd) return;
+  const q = query.toLowerCase();
+  const filtered = analyticPlans.filter(p => p.name.toLowerCase().includes(q));
+  if (!filtered.length) {
+    dd.innerHTML = '<div class="analytic-option empty">Aucun résultat — cliquez 🔄 Charger</div>';
+  } else {
+    dd.innerHTML = filtered.map(p =>
+      `<div class="analytic-option" onmousedown="selectAnalyticCfg(event,'${p.json.replace(/'/g,'\"')}','${p.name.replace(/'/g,'\"')}')">${p.name}</div>`
+    ).join('');
+  }
+  dd.classList.add('open');
+}
+
+function selectAnalyticCfg(e, json, name) {
+  e.preventDefault();
+  document.getElementById('cfg-analytic').value = json;
+  document.getElementById('cfg-analytic-search').value = name;
+  document.getElementById('cfg-analytic-dd').classList.remove('open');
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
