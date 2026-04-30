@@ -465,10 +465,10 @@ async function loadAnalyticPlans(uid) {
   console.log('Company:', companyId, info[0].company_id[1]);
 
   const ids = await odooCall(cfg, uid, 'account.analytic.account', 'search',
-    [[ ['|', ['company_id', '=', companyId], ['company_id', '=', false]] ]],
+    [[ '|', ['company_id', '=', companyId], ['company_id', '=', false] ]],
     { context: { allowed_company_ids: [companyId] }, limit: 0 }
   );
-  console.log('Search done, ids length:', ids ? ids.length : 'null');
+  console.log('Search done, ids:', ids ? ids.length : 'null');
   console.log('Total IDs:', ids.length);
 
   let records = [];
