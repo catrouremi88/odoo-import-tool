@@ -988,7 +988,7 @@ async function loadAnalyticPlans(uid = null) {
       const results = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
         cfg.db, uid, cfg.pass,
         'account.analytic.account', 'search_read',
-        [[]], { fields: ['id', 'name', 'code'], limit: pageSize, offset: offset }
+        [[]], { fields: ['id', 'name', 'code'], limit: pageSize, offset: offset, order: 'id asc' }
       ]);
       if (!results || results.length === 0) break;
       allPlans = allPlans.concat(results);
