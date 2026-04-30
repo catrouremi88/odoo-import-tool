@@ -1032,19 +1032,19 @@ function buildAnalyticSelect(id, currentJson = '') {
 }
 
 function openAnalyticDropdown(id) {
-  filterAnalytic(id, document.getElementById(\`analytic-search-\${id}\`).value);
-  document.getElementById(\`analytic-dd-\${id}\`).classList.add('open');
+  filterAnalytic(id, document.getElementById(`analytic-search-\${id}`).value);
+  document.getElementById(`analytic-dd-\${id}`).classList.add('open');
 }
 
 function closeAnalyticDropdown(id) {
   setTimeout(() => {
-    const dd = document.getElementById(\`analytic-dd-\${id}\`);
+    const dd = document.getElementById(`analytic-dd-\${id}`);
     if (dd) dd.classList.remove('open');
   }, 200);
 }
 
 function filterAnalytic(id, query) {
-  const dd = document.getElementById(\`analytic-dd-\${id}\`);
+  const dd = document.getElementById(`analytic-dd-\${id}`);
   if (!dd) return;
   const q = query.toLowerCase();
   const filtered = analyticPlans.filter(p => p.name.toLowerCase().includes(q));
@@ -1053,9 +1053,9 @@ function filterAnalytic(id, query) {
   } else {
     dd.innerHTML = '<div class="analytic-option" onmousedown="selectAnalytic(event,' + id + ',\'\',\'-- Aucun --\')"  >— Aucun —</div>' +
       filtered.map(p =>
-        \`<div class="analytic-option" onmousedown="selectAnalytic(event,\${id},\'\${p.json.replace(/'/g,\"\")}\',\'\${p.name.replace(/'/g,\"\")}\')">
+        `<div class="analytic-option" onmousedown="selectAnalytic(event,\${id},\'\${p.json.replace(/'/g,\"\")}\',\'\${p.name.replace(/'/g,\"\")}\')">
           \${p.name}
-        </div>\`
+        </div>`
       ).join('');
   }
   dd.classList.add('open');
@@ -1063,13 +1063,13 @@ function filterAnalytic(id, query) {
 
 function selectAnalytic(e, id, json, name) {
   e.preventDefault();
-  document.getElementById(\`analytic-\${id}\`).value = json;
-  document.getElementById(\`analytic-search-\${id}\`).value = name;
-  document.getElementById(\`analytic-dd-\${id}\`).classList.remove('open');
+  document.getElementById(`analytic-\${id}`).value = json;
+  document.getElementById(`analytic-search-\${id}`).value = name;
+  document.getElementById(`analytic-dd-\${id}`).classList.remove('open');
 }
 
 function navAnalytic(e, id) {
-  const dd = document.getElementById(\`analytic-dd-\${id}\`);
+  const dd = document.getElementById(`analytic-dd-\${id}`);
   const items = dd.querySelectorAll('.analytic-option:not(.empty)');
   const highlighted = dd.querySelector('.highlighted');
   let idx = Array.from(items).indexOf(highlighted);
