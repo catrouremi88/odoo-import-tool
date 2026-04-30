@@ -1040,20 +1040,22 @@ async function loadAnalyticPlans(uid = null) {
   }
 }
 
-function buildAnalyticSelect(id, currentJson = '') {
+function buildAnalyticSelect(id, currentJson) {
+  currentJson = currentJson || '';
   const current = analyticPlans.find(p => p.json === currentJson);
   const currentName = current ? current.name : (currentJson ? currentJson : '');
-  return `<div class="analytic-wrapper" style="width:200px">
-    <input type="text" class="analytic-search" id="analytic-search-${id}"
-      placeholder="🔍 Search..." value="${currentName}"
-      autocomplete="off"
-      oninput="filterAnalytic(${id}, this.value)"
-      onfocus="openAnalyticDropdown(${id})"
-      onblur="closeAnalyticDropdown(${id})"
-      onkeydown="navAnalytic(event, ${id})" />
-    <input type="hidden" class="analytic-select" id="analytic-${id}" value="${currentJson}" />
-    <div class="analytic-dropdown" id="analytic-dd-${id}"></div>
-  </div>`;
+  const safeId = 'aid' + String(id).replace(/[^a-zA-Z0-9]/g, '_');
+  return '<div class="analytic-wrapper" style="width:200px">' +
+    '<input type="text" class="analytic-search" id="analytic-search-' + safeId + '"' +
+    ' placeholder="🔍 Search..." value="' + currentName.replace(/"/g, '&quot;') + '"' +
+    ' autocomplete="off"' +
+    ' oninput="filterAnalytic('' + safeId + '', this.value)"' +
+    ' onfocus="openAnalyticDropdown('' + safeId + '')"' +
+    ' onblur="closeAnalyticDropdown('' + safeId + '')"' +
+    ' onkeydown="navAnalytic(event, '' + safeId + '')" />' +
+    '<input type="hidden" class="analytic-select" id="analytic-' + safeId + '" value="' + currentJson.replace(/"/g, '&quot;') + '" />' +
+    '<div class="analytic-dropdown" id="analytic-dd-' + safeId + '"></div>' +
+    '</div>';
 }
 
 function openAnalyticDropdown(id) {
