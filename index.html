@@ -992,22 +992,28 @@ async function loadAnalyticPlans(uid = null) {
       ]);
       if (!results || results.length === 0) break;
       allPlans = allPlans.concat(results);
+      console.log('Page offset=' + offset + ' got=' + results.length + ' total=' + allPlans.length);
       if (results.length < pageSize) break;
       offset += pageSize;
+      if (offset > 5000) { console.warn('Safety break at offset', offset); break; }
     }
 
-    // Filter: only plans where name starts with XX-XXX-00000 format
+    // Filter: only plans where name starts with XX-XXX-00000 format, dedupe by name
     const codePattern = /^[A-Z]{2}-[A-Z]{3}-\d{5}/;
-    const seen = new Set();
+    const seenNames = new Set();
     analyticPlans = allPlans
       .filter(r => {
-        if (seen.has(r.id)) return false;
-        seen.add(r.id);
-        return codePattern.test(r.name ? r.name.trim() : '');
+        const name = r.name ? r.name.trim() : '';
+        if (!codePattern.test(name)) return false;
+        // Keep only parent plans: name should be "XX-XXX-00000 - Client Name" without sub-path (no " / ")
+        if (name.includes(' / ')) return false;
+        if (seenNames.has(name)) return false;
+        seenNames.add(name);
+        return true;
       })
       .map(r => ({
         id:   r.id,
-        name: r.name,
+        name: r.name.trim(),
         json: JSON.stringify({[String(r.id)]: 100.0})
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
