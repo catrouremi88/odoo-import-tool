@@ -996,10 +996,15 @@ async function loadAnalyticPlans(uid = null) {
       offset += pageSize;
     }
 
-    // Deduplicate by ID
+    // Filter: only plans matching XX-XXX-00000 format, deduplicate by ID, sort
+    const codePattern = /^[A-Z]{2}-[A-Z]{3}-\d{5}/;
     const seen = new Set();
     analyticPlans = allPlans
-      .filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; })
+      .filter(r => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return codePattern.test(r.name);
+      })
       .map(r => ({
         id:   r.id,
         name: r.name,
