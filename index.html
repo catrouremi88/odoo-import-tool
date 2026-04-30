@@ -459,16 +459,23 @@ async function resolveId(cfg, uid, model, field, value) {
 // ── Analytic Plans ──
 async function loadAnalyticPlans(uid) {
   const cfg = getCfg();
-  const info = await odooCall(cfg, uid, 'res.users', 'read', [[uid]], { fields: ['company_id'] });
   const cfgCompany = parseInt(document.getElementById('cfg-company').value) || 0;
-  const companyId  = cfgCompany || info[0].company_id[0];
-  console.log('Company:', companyId, info[0].company_id[1]);
+  console.log('Using company ID:', cfgCompany || 'default (user company)');
+
+  // Build domain: filter by company if specified, otherwise get all
+  const domain = cfgCompany
+    ? [ '|', ['company_id', '=', cfgCompany], ['company_id', '=', false] ]
+    : [];
+
+  // Pass company context to override user's active company
+  const context = cfgCompany
+    ? { allowed_company_ids: [cfgCompany], force_company: cfgCompany, company_id: cfgCompany }
+    : {};
 
   const ids = await odooCall(cfg, uid, 'account.analytic.account', 'search',
-    [[ '|', ['company_id', '=', companyId], ['company_id', '=', false] ]],
-    { context: { allowed_company_ids: [companyId] }, limit: 0 }
+    [domain], { context, limit: 0 }
   );
-  console.log('Search done, ids:', ids ? ids.length : 'null');
+  console.log('Total IDs:', ids ? ids.length : 'null');
   console.log('Total IDs:', ids.length);
 
   let records = [];
