@@ -525,6 +525,14 @@ async function odooCreate(cfg, uid, model, vals) {
 }
 
 async function resolveId(cfg, uid, model, field, value, log) {
+  if (model === 'account.account') {
+    const code = value.split(' ')[0];
+    let ids = await odooSearch(cfg, uid, model, [['code', '=', code]]);
+    if (ids && ids.length > 0) { log(`   ↳ ${value} → id=${ids[0]}`, 'ok'); return ids[0]; }
+    ids = await odooSearch(cfg, uid, model, [['name', 'ilike', value]]);
+    if (ids && ids.length > 0) { log(`   ↳ ${value} → id=${ids[0]}`, 'ok'); return ids[0]; }
+    throw new Error(`Compte "${value}" introuvable — vérifiez le code comptable`);
+  }
   const ids = await odooSearch(cfg, uid, model, [[field, '=', value]]);
   if (!ids || ids.length === 0) throw new Error(`"${value}" introuvable dans ${model}`);
   log(`   ↳ ${value} → id=${ids[0]}`, 'ok');
