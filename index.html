@@ -465,9 +465,10 @@ async function loadAnalyticPlans(uid) {
   console.log('Company:', companyId, info[0].company_id[1]);
 
   const ids = await odooCall(cfg, uid, 'account.analytic.account', 'search',
-    [[['|', ['company_id', '=', companyId], ['company_id', '=', false]]]],
-    { context: { allowed_company_ids: [companyId] } }
+    [[ ['|', ['company_id', '=', companyId], ['company_id', '=', false]] ]],
+    { context: { allowed_company_ids: [companyId] }, limit: 0 }
   );
+  console.log('Search done, ids length:', ids ? ids.length : 'null');
   console.log('Total IDs:', ids.length);
 
   let records = [];
@@ -503,8 +504,9 @@ async function loadAnalyticPlansWithUI(uid) {
     search.placeholder = '🔍 Search among ' + analyticPlans.length + ' plans...';
     setTimeout(() => { btn.textContent = '🔄 Reload'; btn.disabled = false; }, 3000);
   } catch(e) {
-    btn.textContent = '❌ Error'; btn.disabled = false;
-    setTimeout(() => { btn.textContent = '🔄 Load'; }, 2000);
+    console.error('loadAnalyticPlans error:', e.message, e);
+    btn.textContent = '❌ ' + e.message.slice(0, 30); btn.disabled = false;
+    setTimeout(() => { btn.textContent = '🔄 Load'; }, 4000);
   }
 }
 
