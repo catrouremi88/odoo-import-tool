@@ -432,6 +432,8 @@ function getCfg() {
 }
 
 // ── XML-RPC ───────────────────────────────────────────────────────────────────
+const PROXY_URL = 'https://odoo-import-tool.onrender.com';
+
 function xmlrpcCall(url, method, params) {
   const body = `<?xml version="1.0"?>
 <methodCall>
@@ -439,9 +441,16 @@ function xmlrpcCall(url, method, params) {
   <params>${params.map(p => `<param><value>${toXml(p)}</value></param>`).join('')}</params>
 </methodCall>`;
 
-  return fetch(url, {
+  // Extract the path after /xmlrpc/ from the original URL
+  const path = url.replace(/^https?:\/\/[^\/]+\/xmlrpc\//, '');
+  const odooBase = url.replace(/\/xmlrpc\/.*$/, '');
+
+  return fetch(`${PROXY_URL}/xmlrpc/${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/xml' },
+    headers: {
+      'Content-Type': 'text/xml',
+      'X-Odoo-URL': odooBase
+    },
     body
   }).then(r => r.text()).then(parseXmlrpc);
 }
