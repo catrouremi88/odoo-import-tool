@@ -273,8 +273,14 @@
           <input type="text" id="cfg-account" placeholder="640100 Main Business Costs" />
         </div>
         <div class="form-group full">
-          <label>Distribution analytique par défaut (JSON)</label>
-          <input type="text" id="cfg-analytic" placeholder='{"582": 100.0}' />
+          <label>Plan analytique par défaut</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="cfg-analytic-select" style="flex:1">
+              <option value="">-- Sélectionner après connexion --</option>
+            </select>
+            <button class="btn btn-secondary" style="padding:8px 14px;font-size:11px" onclick="loadAnalyticPlans()">🔄 Charger</button>
+          </div>
+          <input type="hidden" id="cfg-analytic" />
         </div>
       </div>
       <div class="btn-row">
@@ -554,6 +560,7 @@ async function testConnection() {
     dot.className = 'status-dot dot-ok';
     text.textContent = `Connecté ✓ (uid=${uid})`;
     text.style.color = 'var(--accent2)';
+    await loadAnalyticPlans(uid);
   } catch(e) {
     dot.className = 'status-dot dot-err';
     text.textContent = `Erreur : ${e.message}`;
@@ -675,7 +682,7 @@ function addLine(data = {}) {
     <td><input type="text" value="${data.product||''}" placeholder="INC - Payroll Expenses" style="width:140px"/></td>
     <td><input type="text" value="${data.label||''}" placeholder="Label" style="width:140px"/></td>
     <td><input type="text" value="${data.account||cfg.account||''}" placeholder="640100..." style="width:160px"/></td>
-    <td><input type="text" value="${data.analytic||cfg.analytic||''}" placeholder='{"582":100}' style="width:110px;font-size:11px"/></td>
+    <td>${buildAnalyticSelect(id, data.analytic||cfg.analytic||'')}  </td>
     <td><input type="number" value="${data.qty||1}" style="width:60px"/></td>
     <td><input type="number" value="${data.price||''}" placeholder="0.00" style="width:90px"/></td>
     <td><button onclick="document.getElementById('line-${id}').remove()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px">✕</button></td>`;
@@ -689,7 +696,7 @@ function getManualLines() {
       product:  inputs[0].value.trim(),
       label:    inputs[1].value.trim(),
       account:  inputs[2].value.trim(),
-      analytic: inputs[3].value.trim(),
+      analytic: (tr.querySelectorAll('select')[0]?.value || inputs[3]?.value || '').trim(),
       qty:      parseFloat(inputs[4].value) || 1,
       price:    parseFloat(inputs[5].value) || 0,
     };
@@ -863,6 +870,57 @@ function showAlert(msg, type, nearId) {
   div.style.marginTop = '12px';
   el.closest('.card').appendChild(div);
   setTimeout(() => div.remove(), 3000);
+}
+
+// ── Analytic Plans ───────────────────────────────────────────────────────────
+let analyticPlans = []; // [{id, name, json}]
+
+async function loadAnalyticPlans(uid = null) {
+  const cfg = getCfg();
+  if (!cfg.url || !cfg.db || !cfg.user || !cfg.pass) return;
+  try {
+    if (!uid) uid = await odooAuth(cfg);
+    const results = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
+      cfg.db, uid, cfg.pass,
+      'account.analytic.account', 'search_read',
+      [[]], { fields: ['id', 'name', 'code'], limit: 200 }
+    ]);
+    analyticPlans = results.map(r => ({
+      id:   r.id,
+      name: r.code ? `${r.code} - ${r.name}` : r.name,
+      json: JSON.stringify({[String(r.id)]: 100.0})
+    }));
+
+    // Populate config select
+    const sel = document.getElementById('cfg-analytic-select');
+    const currentJson = document.getElementById('cfg-analytic').value;
+    sel.innerHTML = '<option value="">-- Aucun --</option>' +
+      analyticPlans.map(p => `<option value="${p.json}" ${p.json === currentJson ? 'selected' : ''}>${p.name}</option>`).join('');
+
+    sel.onchange = () => {
+      document.getElementById('cfg-analytic').value = sel.value;
+    };
+    if (sel.value) document.getElementById('cfg-analytic').value = sel.value;
+
+    // Refresh all analytic selects in manual lines
+    document.querySelectorAll('.analytic-select').forEach(s => {
+      const current = s.value;
+      s.innerHTML = '<option value="">-- Aucun --</option>' +
+        analyticPlans.map(p => `<option value="${p.json}" ${p.json === current ? 'selected' : ''}>${p.name}</option>`).join('');
+    });
+
+    console.log(`Loaded ${analyticPlans.length} analytic plans`);
+  } catch(e) {
+    console.warn('Could not load analytic plans:', e.message);
+  }
+}
+
+function buildAnalyticSelect(id, currentJson = '') {
+  const opts = analyticPlans.length
+    ? analyticPlans.map(p => `<option value="${p.json}" ${p.json === currentJson ? 'selected' : ''}>${p.name}</option>`).join('')
+    : `<option value="${currentJson}">${currentJson || '-- Connectez-vous --'}</option>`;
+  return `<select class="analytic-select" id="analytic-${id}" style="width:180px;font-size:11px">
+    <option value="">-- Aucun --</option>${opts}</select>`;
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
