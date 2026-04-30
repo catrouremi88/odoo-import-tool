@@ -998,7 +998,7 @@ async function loadAnalyticPlans(uid = null) {
 
     analyticPlans = allPlans.map(r => ({
       id:   r.id,
-      name: r.code ? r.code + ' - ' + r.name : r.name,
+      name: r.name,
       json: JSON.stringify({[String(r.id)]: 100.0})
     }));
 
@@ -1187,8 +1187,15 @@ async function loadAnalyticPlansUI() {
     const uid = await odooAuth(cfg);
     await loadAnalyticPlans(uid);
     btn.textContent = '✅ ' + analyticPlans.length + ' loaded';
-    search.placeholder = '🔍 Search analytic plan...';
-    setTimeout(() => { btn.textContent = '🔄 Load'; btn.disabled = false; }, 3000);
+    search.placeholder = '🔍 Search among ' + analyticPlans.length + ' plans...';
+    // Pre-populate the dropdown so it's ready
+    filterAnalyticCfg('');
+    document.getElementById('cfg-analytic-dd').classList.add('open');
+    setTimeout(() => {
+      btn.textContent = '🔄 Reload';
+      btn.disabled = false;
+      document.getElementById('cfg-analytic-dd').classList.remove('open');
+    }, 3000);
   } catch(e) {
     btn.textContent = '❌ Error';
     btn.disabled = false;
