@@ -996,11 +996,16 @@ async function loadAnalyticPlans(uid = null) {
       offset += pageSize;
     }
 
-    analyticPlans = allPlans.map(r => ({
-      id:   r.id,
-      name: r.name,
-      json: JSON.stringify({[String(r.id)]: 100.0})
-    }));
+    // Deduplicate by ID
+    const seen = new Set();
+    analyticPlans = allPlans
+      .filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; })
+      .map(r => ({
+        id:   r.id,
+        name: r.name,
+        json: JSON.stringify({[String(r.id)]: 100.0})
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     // Populate config searchable dropdown
     const currentJson = document.getElementById('cfg-analytic').value;
