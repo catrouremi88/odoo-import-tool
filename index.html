@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Odoo — Import Vendor Bill</title>
+<title>Odoo — Vendor Bill Import</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -236,71 +236,71 @@
       <div class="logo-icon">📥</div>
       <div class="logo-text">Odoo Tools</div>
     </div>
-    <h1>Import <span>Vendor Bill</span></h1>
-    <p class="subtitle">Créez des factures fournisseurs multi-lignes dans Odoo depuis un fichier Excel.</p>
+    <h1>Vendor Bill <span>Import</span></h1>
+    <p class="subtitle">Create multi-line vendor bills in Odoo from an Excel file.</p>
   </div>
 
   <!-- Tabs -->
   <div class="tabs">
     <button class="tab active" onclick="switchTab('config')">⚙️ Configuration</button>
-    <button class="tab" onclick="switchTab('import')">📂 Import Excel</button>
-    <button class="tab" onclick="switchTab('manuel')">✏️ Saisie manuelle</button>
+    <button class="tab" onclick="switchTab('import')">📂 Excel Import</button>
+    <button class="tab" onclick="switchTab('manuel')">✏️ Manual Entry</button>
   </div>
 
   <!-- ══ TAB CONFIG ══ -->
   <div class="panel active" id="tab-config">
     <div class="card">
-      <div class="card-title">Connexion Odoo</div>
-      <div class="alert alert-info">💡 Ces informations sont sauvegardées uniquement dans votre navigateur (localStorage). Elles ne sont jamais envoyées à un tiers.</div>
+      <div class="card-title">Odoo Connection</div>
+      <div class="alert alert-info">💡 This information is saved only in your browser (localStorage). It is never sent to any third party.</div>
       <div class="form-grid">
         <div class="form-group full">
-          <label>URL Odoo</label>
+          <label>Odoo URL</label>
           <input type="text" id="cfg-url" placeholder="https://altios-china.run-odoo.com" />
         </div>
         <div class="form-group">
-          <label>Base de données</label>
+          <label>Database</label>
           <input type="text" id="cfg-db" placeholder="china" />
         </div>
         <div class="form-group">
-          <label>Email utilisateur</label>
+          <label>User Email</label>
           <input type="email" id="cfg-user" placeholder="comptable@entreprise.com" />
         </div>
         <div class="form-group full">
-          <label>Mot de passe</label>
+          <label>Password</label>
           <input type="password" id="cfg-pass" placeholder="••••••••" />
         </div>
       </div>
       <div class="btn-row">
-        <button class="btn btn-primary" onclick="saveConfig()">💾 Sauvegarder</button>
-        <button class="btn btn-secondary" onclick="testConnection()">🔌 Tester la connexion</button>
+        <button class="btn btn-primary" onclick="saveConfig()">💾 Save</button>
+        <button class="btn btn-secondary" onclick="testConnection()">🔌 Test Connection</button>
       </div>
       <div class="conn-status" id="conn-status">
         <span class="status-dot dot-idle" id="conn-dot"></span>
-        <span id="conn-text">Non testé</span>
+        <span id="conn-text">Not tested</span>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">Valeurs par défaut</div>
+      <div class="card-title">Default Values</div>
       <div class="form-grid">
         <div class="form-group">
-          <label>Journal par défaut</label>
+          <label>Default Journal</label>
           <input type="text" id="cfg-journal" placeholder="Vendor Bills" />
         </div>
         <div class="form-group">
-          <label>Devise par défaut</label>
+          <label>Default Currency</label>
           <input type="text" id="cfg-currency" placeholder="CNY" />
         </div>
         <div class="form-group full">
-          <label>Compte de charge par défaut</label>
+          <label>Default Expense Account</label>
           <input type="text" id="cfg-account" placeholder="640100 Main Business Costs" />
         </div>
         <div class="form-group full">
-          <label>Plan analytique par défaut</label>
+          <label>Default Analytic Plan</label>
           <div style="display:flex;gap:8px;align-items:center">
             <div class="analytic-wrapper" style="flex:1">
               <input type="text" class="analytic-search" id="cfg-analytic-search"
-                placeholder="🔍 Rechercher un plan analytique..."
+                placeholder="🔍 Search analytic plan..."
                 autocomplete="off"
                 oninput="filterAnalyticCfg(this.value)"
                 onfocus="document.getElementById('cfg-analytic-dd').classList.add('open')"
@@ -313,7 +313,7 @@
         </div>
       </div>
       <div class="btn-row">
-        <button class="btn btn-primary" onclick="saveConfig()">💾 Sauvegarder les défauts</button>
+        <button class="btn btn-primary" onclick="saveConfig()">💾 Save Defaults</button>
       </div>
     </div>
   </div>
@@ -321,38 +321,33 @@
   <!-- ══ TAB IMPORT ══ -->
   <div class="panel" id="tab-import">
     <div class="card">
-      <div class="card-title">Upload fichier Excel</div>
-      <div class="alert alert-info">📋 Format attendu : colonnes <strong>Fournisseur, Date, Échéance, Produit, Label, Compte, Analytique, Quantité, Prix</strong> — ou utilisez le template ci-dessous.</div>
+      <div class="card-title">Upload Excel File</div>
+      <div class="alert alert-info">📋 Upload your existing vendor bill file. Lines with missing analytic distribution will be flagged for you to fill in.</div>
 
       <div class="upload-zone" id="drop-zone">
         <input type="file" id="file-input" accept=".xlsx,.xls,.csv" onchange="handleFile(this)" />
         <div class="upload-icon">📊</div>
-        <div class="upload-text">Glissez votre fichier ici</div>
-        <div class="upload-sub">.xlsx / .xls / .csv acceptés</div>
+        <div class="upload-text">Drag your file here</div>
+        <div class="upload-sub">.xlsx / .xls / .csv accepted</div>
         <div class="upload-filename" id="file-name"></div>
       </div>
 
       <div id="preview-section" style="display:none; margin-top:20px;">
-        <div class="card-title" style="margin-bottom:12px;">Aperçu des lignes détectées</div>
+        <div class="card-title" style="margin-bottom:12px;">Preview — fill in missing analytic plans</div>
         <div class="table-wrap">
           <table id="preview-table">
             <thead><tr id="preview-head"></tr></thead>
             <tbody id="preview-body"></tbody>
           </table>
         </div>
+        <div id="missing-alert" style="display:none;" class="alert alert-error" style="margin-top:12px;">
+          ⚠️ Some lines are missing an analytic plan — please fill them in above before downloading.
+        </div>
       </div>
 
       <div class="btn-row">
-        <button class="btn btn-success" id="btn-import-excel" onclick="importFromExcel()" disabled>🚀 Importer dans Odoo</button>
-        <button class="btn btn-secondary" onclick="downloadTemplate()">⬇️ Télécharger le template</button>
-      </div>
-    </div>
-
-    <div id="import-result" style="display:none;">
-      <div class="card">
-        <div class="card-title">Résultat de l'import</div>
-        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
-        <div class="log" id="import-log"></div>
+        <button class="btn btn-success" id="btn-download-fixed" onclick="downloadFixedExcel()" style="display:none">📥 Download Fixed Excel</button>
+        <button class="btn btn-secondary" onclick="downloadTemplate()">⬇️ Download Template</button>
       </div>
     </div>
   </div>
@@ -360,22 +355,22 @@
   <!-- ══ TAB MANUEL ══ -->
   <div class="panel" id="tab-manuel">
     <div class="card">
-      <div class="card-title">En-tête de la facture</div>
+      <div class="card-title">Bill Header</div>
       <div class="form-grid">
         <div class="form-group">
-          <label>Fournisseur *</label>
-          <input type="text" id="m-partner" placeholder="Nom exact dans Odoo" />
+          <label>Vendor *</label>
+          <input type="text" id="m-partner" placeholder="Exact name in Odoo" />
         </div>
         <div class="form-group">
-          <label>Référence fournisseur</label>
+          <label>Vendor Reference</label>
           <input type="text" id="m-ref" placeholder="REF-2026-001" />
         </div>
         <div class="form-group">
-          <label>Date de la facture</label>
+          <label>Invoice Date</label>
           <input type="date" id="m-date" />
         </div>
         <div class="form-group">
-          <label>Date d'échéance</label>
+          <label>Due Date</label>
           <input type="date" id="m-due" />
         </div>
         <div class="form-group">
@@ -390,7 +385,7 @@
     </div>
 
     <div class="card">
-      <div class="card-title">Lignes de facture</div>
+      <div class="card-title">Invoice Lines</div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -408,12 +403,13 @@
         </table>
       </div>
       <div class="btn-row">
-        <button class="btn btn-secondary" onclick="addLine()">＋ Ajouter une ligne</button>
+        <button class="btn btn-secondary" onclick="addLine()">＋ Add a line</button>
       </div>
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-success" onclick="importManual()">🚀 Créer dans Odoo</button>
+      <button class="btn btn-success" onclick="importManual()">🚀 Create in Odoo</button>
+      <button class="btn btn-secondary" onclick="downloadManualExcel()">📥 Download Excel</button>
     </div>
 
     <div id="manual-result" style="display:none; margin-top:20px;">
@@ -425,7 +421,7 @@
     </div>
   </div>
 
-  <div class="footer">Odoo Import Tool — Données stockées localement • Aucune transmission externe</div>
+  <div class="footer">Odoo Import Tool — Data stored locally • No external transmission</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -443,7 +439,7 @@ function saveConfig() {
     analytic: document.getElementById('cfg-analytic').value.trim(),
   };
   localStorage.setItem('odoo_cfg', JSON.stringify(cfg));
-  showAlert('✅ Configuration sauvegardée !', 'success', 'cfg-url');
+  showAlert('✅ Configuration saved!', 'success', 'cfg-url');
 }
 
 function loadConfig() {
@@ -545,7 +541,7 @@ function parseXmlVal(node) {
 async function odooAuth(cfg) {
   const uid = await xmlrpcCall(`${cfg.url}/xmlrpc/2/common`, 'authenticate',
     [cfg.db, cfg.user, cfg.pass, {}]);
-  if (!uid) throw new Error('Authentification échouée — vérifiez email/mot de passe');
+  if (!uid) throw new Error('Authentication failed — check email/password');
   return uid;
 }
 
@@ -566,10 +562,10 @@ async function resolveId(cfg, uid, model, field, value, log) {
     if (ids && ids.length > 0) { log(`   ↳ ${value} → id=${ids[0]}`, 'ok'); return ids[0]; }
     ids = await odooSearch(cfg, uid, model, [['name', 'ilike', value]]);
     if (ids && ids.length > 0) { log(`   ↳ ${value} → id=${ids[0]}`, 'ok'); return ids[0]; }
-    throw new Error(`Compte "${value}" introuvable — vérifiez le code comptable`);
+    throw new Error(`Account "${value}" not found — check the account code`);
   }
   const ids = await odooSearch(cfg, uid, model, [[field, '=', value]]);
-  if (!ids || ids.length === 0) throw new Error(`"${value}" introuvable dans ${model}`);
+  if (!ids || ids.length === 0) throw new Error(`"${value}" not found in ${model}`);
   log(`   ↳ ${value} → id=${ids[0]}`, 'ok');
   return ids[0];
 }
@@ -578,21 +574,21 @@ async function resolveId(cfg, uid, model, field, value, log) {
 async function testConnection() {
   const cfg = getCfg();
   if (!cfg.url || !cfg.db || !cfg.user || !cfg.pass) {
-    alert('Complétez et sauvegardez la configuration d\'abord.');
+    alert('Please complete and save the configuration d\'abord.');
     return;
   }
   const dot  = document.getElementById('conn-dot');
   const text = document.getElementById('conn-text');
-  dot.className = 'status-dot dot-idle'; text.textContent = 'Test en cours...';
+  dot.className = 'status-dot dot-idle'; text.textContent = 'Testing...';
   try {
     const uid = await odooAuth(cfg);
     dot.className = 'status-dot dot-ok';
-    text.textContent = `Connecté ✓ (uid=${uid})`;
+    text.textContent = `Connected ✓ (uid=${uid})`;
     text.style.color = 'var(--accent2)';
     await loadAnalyticPlans(uid);
   } catch(e) {
     dot.className = 'status-dot dot-err';
-    text.textContent = `Erreur : ${e.message}`;
+    text.textContent = `Error: ${e.message}`;
     text.style.color = 'var(--danger)';
   }
 }
@@ -623,55 +619,73 @@ function handleFile(input) {
   reader.readAsArrayBuffer(file);
 }
 
+// Store raw excel data for re-export
+let rawExcelData = [];
+let rawExcelHeaders = [];
+let analyticColIdx = -1;
+let previewLineIds = [];
+
 function parseExcelData(data) {
-  // Try to detect header row vs line rows
   const cfg = getCfg();
   parsedLines = [];
+  rawExcelData = data;
   parsedHeader = { journal: cfg.journal || 'Vendor Bills', currency: cfg.currency || 'CNY' };
 
-  const keys = Object.keys(data[0]).map(k => k.toLowerCase().trim());
+  if (!data.length) return;
+  rawExcelHeaders = Object.keys(data[0]);
 
   const find = (...names) => {
     for (const n of names) {
-      const k = Object.keys(data[0]).find(k => k.toLowerCase().includes(n));
+      const k = rawExcelHeaders.find(k => k.toLowerCase().includes(n));
       if (k) return k;
     }
     return null;
   };
 
-  const kPartner  = find('fournisseur', 'vendor', 'partner', 'supplier');
-  const kDate     = find('date facture', 'invoice date', 'bill date', 'date');
-  const kDue      = find('échéance', 'due', 'echeance');
-  const kJournal  = find('journal');
-  const kProduct  = find('produit', 'product');
-  const kLabel    = find('label', 'description', 'libellé');
-  const kAccount  = find('compte', 'account');
-  const kAnalytic = find('analytique', 'analytic');
-  const kQty      = find('quantité', 'quantity', 'qté', 'qty');
-  const kPrice    = find('prix', 'price', 'unit');
-  const kRef      = find('référence', 'reference', 'ref');
+  const kPartner  = find('partner_id', 'fournisseur', 'vendor', 'partner');
+  const kDate     = find('invoice_date', 'date facture', 'invoice date', 'date');
+  const kDue      = find('invoice_date_due', 'due', 'echeance');
+  const kJournal  = find('journal_id', 'journal');
+  const kProduct  = find('product_id', 'produit', 'product');
+  const kLabel    = find('invoice_line_ids/name', 'invoice_line_ids/description', 'label', 'description');
+  const kAccount  = find('invoice_line_ids/account_id', 'account_id', 'compte', 'account');
+  const kAnalytic = find('invoice_line_ids/analytic_distribution', 'analytic_distribution', 'analytique', 'analytic');
+  const kQty      = find('invoice_line_ids/quantity', 'quantity', 'quantite', 'qty');
+  const kPrice    = find('invoice_line_ids/price_unit', 'price_unit', 'prix', 'price');
+  const kRef      = find('ref', 'reference');
+  const kCurrency = find('currency_id', 'currency', 'devise');
+  const kName     = find('^name$', 'name');
 
+  analyticColIdx = kAnalytic ? rawExcelHeaders.indexOf(kAnalytic) : -1;
+
+  if (kPartner && data[0][kPartner]) parsedHeader.partner  = data[0][kPartner];
+  if (kDate    && data[0][kDate])    parsedHeader.date      = data[0][kDate];
+  if (kDue     && data[0][kDue])     parsedHeader.due       = data[0][kDue];
+  if (kJournal && data[0][kJournal]) parsedHeader.journal   = data[0][kJournal];
+  if (kRef     && data[0][kRef])     parsedHeader.ref       = data[0][kRef];
+  if (kCurrency&& data[0][kCurrency])parsedHeader.currency  = data[0][kCurrency];
+
+  previewLineIds = [];
   data.forEach((row, i) => {
-    const isHeader = i === 0 || row[kPartner] || row[kDate] || row[kJournal];
-    if (i === 0 && kPartner) parsedHeader.partner  = row[kPartner];
-    if (i === 0 && kDate)    parsedHeader.date      = row[kDate];
-    if (i === 0 && kDue)     parsedHeader.due       = row[kDue];
-    if (i === 0 && kJournal && row[kJournal]) parsedHeader.journal = row[kJournal];
-    if (i === 0 && kRef)     parsedHeader.ref       = row[kRef];
-
-    const account  = kAccount  ? row[kAccount]  : cfg.account;
-    const analytic = kAnalytic ? row[kAnalytic] : cfg.analytic;
-    const qty      = parseFloat((kQty ? row[kQty] : '1') || 1);
-    const price    = parseFloat((kPrice ? row[kPrice] : '0') || 0);
-    const label    = kLabel ? row[kLabel] : (kProduct ? row[kProduct] : '');
-    const product  = kProduct ? row[kProduct] : '';
-
-    if (!account && !product) return;
-    parsedLines.push({ product, label, account, analytic, qty, price });
+    const account = kAccount ? row[kAccount] : cfg.account;
+    const label   = kLabel   ? row[kLabel]   : (kProduct ? row[kProduct] : '');
+    if (!account && !label) return;
+    const lineId = 'xl-' + i;
+    previewLineIds.push(i);
+    parsedLines.push({
+      rowIdx:  i,
+      lineId,
+      product: kProduct  ? row[kProduct]  : '',
+      label:   label || '',
+      account: account || '',
+      analytic: kAnalytic ? row[kAnalytic] : '',
+      qty:     parseFloat(kQty   ? row[kQty]   : 1) || 1,
+      price:   parseFloat(kPrice ? row[kPrice] : 0) || 0,
+    });
   });
 
   showPreview();
-  document.getElementById('btn-import-excel').disabled = parsedLines.length === 0;
+  document.getElementById('btn-download-fixed').style.display = parsedLines.length ? 'inline-flex' : 'none';
 }
 
 function showPreview() {
@@ -680,16 +694,73 @@ function showPreview() {
 
   const head = document.getElementById('preview-head');
   const body = document.getElementById('preview-body');
-  head.innerHTML = ['Produit','Label','Compte','Analytique','Qté','Prix'].map(h => `<th>${h}</th>`).join('');
-  body.innerHTML = parsedLines.map(l => `
-    <tr>
+  head.innerHTML = ['Product','Label','Account','Analytic Plan','Qty','Price'].map(h => `<th>${h}</th>`).join('');
+
+  let missingCount = 0;
+  body.innerHTML = parsedLines.map((l, idx) => {
+    const hasMissing = !l.analytic;
+    if (hasMissing) missingCount++;
+    const analyticCell = hasMissing
+      ? buildAnalyticSelect(l.lineId, '')
+      : `<span class="badge badge-ok">✓ ${l.analytic.length > 20 ? l.analytic.substring(0,20)+'...' : l.analytic}</span>`;
+    return `<tr id="row-${l.lineId}">
       <td>${l.product || '—'}</td>
       <td>${l.label || '—'}</td>
-      <td>${l.account || '<span class="badge badge-warn">⚠ manquant</span>'}</td>
-      <td><span class="badge badge-ok">${l.analytic ? '✓' : '—'}</span></td>
+      <td>${l.account || '<span class="badge badge-warn">⚠ missing</span>'}</td>
+      <td>${analyticCell}</td>
       <td>${l.qty}</td>
-      <td>${Number(l.price).toLocaleString('fr-FR', {minimumFractionDigits:2})}</td>
-    </tr>`).join('');
+      <td>${Number(l.price).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+    </tr>`;
+  }).join('');
+
+  const missingEl = document.getElementById('missing-alert');
+  missingEl.style.display = missingCount > 0 ? 'block' : 'none';
+}
+
+function downloadFixedExcel() {
+  // Collect analytic values from dropdowns for missing lines
+  parsedLines.forEach(line => {
+    if (!line.analytic) {
+      const sel = document.getElementById(`analytic-${line.lineId}`);
+      if (sel && sel.value) line.analytic = sel.value;
+    }
+  });
+
+  // Check still missing
+  const stillMissing = parsedLines.filter(l => !l.analytic).length;
+  if (stillMissing > 0) {
+    document.getElementById('missing-alert').style.display = 'block';
+    document.getElementById('missing-alert').textContent = `⚠️ ${stillMissing} line(s) still missing analytic plan. Please fill them in.`;
+    return;
+  }
+
+  // Rebuild excel with fixed analytic column
+  const wb = XLSX.utils.book_new();
+
+  if (rawExcelData.length) {
+    // Use original data, patch analytic column
+    const lineMap = {};
+    parsedLines.forEach(l => lineMap[l.rowIdx] = l.analytic);
+
+    const analyticKey = rawExcelHeaders.find(k =>
+      k.toLowerCase().includes('analytic_distribution') || k.toLowerCase().includes('analytic')
+    ) || 'invoice_line_ids/analytic_distribution';
+
+    // Ensure analytic key exists in headers
+    if (!rawExcelHeaders.includes(analyticKey)) rawExcelHeaders.push(analyticKey);
+
+    const rows = rawExcelData.map((row, i) => {
+      const newRow = { ...row };
+      if (lineMap[i] !== undefined) newRow[analyticKey] = lineMap[i];
+      return newRow;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows, { header: rawExcelHeaders });
+    ws['!cols'] = rawExcelHeaders.map(h => ({ wch: h.includes('analytic') ? 25 : h.length + 4 }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Import');
+  }
+
+  XLSX.writeFile(wb, `vendor_bill_fixed_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
 // ── Import from Excel ─────────────────────────────────────────────────────────
@@ -743,7 +814,7 @@ async function importManual() {
     ref:      document.getElementById('m-ref').value.trim(),
   };
   const lines = getManualLines();
-  if (!lines.length) { alert('Ajoutez au moins une ligne.'); return; }
+  if (!lines.length) { alert('Please add at least one line.'); return; }
   document.getElementById('manual-result').style.display = 'block';
   await runImport(header, lines, 'manual-log', 'progress-m');
 }
@@ -771,19 +842,19 @@ async function runImport(header, lines, logId, progressId) {
   }
 
   try {
-    log('🔌 Connexion à Odoo...', 'info');
+    log('🔌 Connecting to Odoo...', 'info');
     const uid = await odooAuth(cfg);
     log(`✅ Connecté (uid=${uid})`, 'ok');
     progress(10);
 
-    log('📋 Résolution du journal...', 'info');
+    log('📋 Resolving journal...', 'info');
     const journalName = header.journal || cfg.journal || 'Vendor Bills';
     const journalId = await resolveId(cfg, uid, 'account.journal', 'name', journalName, log);
     progress(20);
 
     let partnerId = null;
     if (header.partner) {
-      log(`👤 Résolution du fournisseur: ${header.partner}`, 'info');
+      log(`👤 Resolving vendor: ${header.partner}`, 'info');
       partnerId = await resolveId(cfg, uid, 'res.partner', 'name', header.partner, log);
     }
     progress(30);
@@ -791,25 +862,25 @@ async function runImport(header, lines, logId, progressId) {
     let currencyId = null;
     const currencyName = header.currency || cfg.currency;
     if (currencyName) {
-      log(`💱 Résolution de la devise: ${currencyName}`, 'info');
+      log(`💱 Resolving currency: ${currencyName}`, 'info');
       currencyId = await resolveId(cfg, uid, 'res.currency', 'name', currencyName, log);
     }
     progress(40);
 
-    log(`📝 Préparation de ${lines.length} ligne(s)...`, 'info');
+    log(`📝 Preparing ${lines.length} line(s)...`, 'info');
     const invoiceLines = [];
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const accountName = line.account || cfg.account;
-      if (!accountName) { log(`⚠️  Ligne ${i+1}: compte manquant, ignorée`, 'warn'); continue; }
+      if (!accountName) { log(`⚠️  Line ${i+1}: missing account, skipped`, 'warn'); continue; }
 
-      log(`   Ligne ${i+1}: ${line.label || line.product}`, 'info');
+      log(`   Line ${i+1}: ${line.label || line.product}`, 'info');
       const accountId = await resolveId(cfg, uid, 'account.account', 'name', accountName, log);
 
       let productId = null;
       if (line.product) {
         try { productId = await resolveId(cfg, uid, 'product.product', 'name', line.product, log); }
-        catch(e) { log(`   ⚠️  Produit "${line.product}" non trouvé, ignoré`, 'warn'); }
+        catch(e) { log(`   ⚠️  Product "${line.product}" not found, ignored`, 'warn'); }
       }
 
       const lineVals = {
@@ -823,16 +894,16 @@ async function runImport(header, lines, logId, progressId) {
       const analyticRaw = line.analytic || cfg.analytic;
       if (analyticRaw) {
         try { lineVals.analytic_distribution = JSON.parse(analyticRaw); }
-        catch(e) { log(`   ⚠️  JSON analytique invalide: ${analyticRaw}`, 'warn'); }
+        catch(e) { log(`   ⚠️  Invalid analytic JSON: ${analyticRaw}`, 'warn'); }
       }
 
       invoiceLines.push([0, 0, lineVals]);
       progress(40 + Math.round((i + 1) / lines.length * 40));
     }
 
-    if (!invoiceLines.length) { log('❌ Aucune ligne valide à importer.', 'err'); return; }
+    if (!invoiceLines.length) { log('❌ No valid lines to import.', 'err'); return; }
 
-    log('🚀 Création de la vendor bill...', 'info');
+    log('🚀 Creating vendor bill...', 'info');
     const vals = {
       move_type:        'in_invoice',
       journal_id:       journalId,
@@ -846,11 +917,11 @@ async function runImport(header, lines, logId, progressId) {
 
     const billId = await odooCreate(cfg, uid, 'account.move', vals);
     progress(100);
-    log(`✅ Vendor Bill créée avec succès ! ID = ${billId}`, 'ok');
+    log(`✅ Vendor Bill created successfully! ID = ${billId}`, 'ok');
     log(`🔗 ${cfg.url}/web#id=${billId}&model=account.move&view_type=form`, 'ok');
 
   } catch(e) {
-    log(`❌ Erreur : ${e.message}`, 'err');
+    log(`❌ Error: ${e.message}`, 'err');
     progress(0);
   }
 }
@@ -949,7 +1020,7 @@ function buildAnalyticSelect(id, currentJson = '') {
   const currentName = current ? current.name : (currentJson ? currentJson : '');
   return `<div class="analytic-wrapper" style="width:200px">
     <input type="text" class="analytic-search" id="analytic-search-${id}"
-      placeholder="🔍 Rechercher..." value="${currentName}"
+      placeholder="🔍 Search..." value="${currentName}"
       autocomplete="off"
       oninput="filterAnalytic(${id}, this.value)"
       onfocus="openAnalyticDropdown(${id})"
@@ -978,7 +1049,7 @@ function filterAnalytic(id, query) {
   const q = query.toLowerCase();
   const filtered = analyticPlans.filter(p => p.name.toLowerCase().includes(q));
   if (!filtered.length) {
-    dd.innerHTML = '<div class="analytic-option empty">Aucun résultat</div>';
+    dd.innerHTML = '<div class="analytic-option empty">No results</div>';
   } else {
     dd.innerHTML = '<div class="analytic-option" onmousedown="selectAnalytic(event,' + id + ',\'\',\'-- Aucun --\')"  >— Aucun —</div>' +
       filtered.map(p =>
@@ -1016,7 +1087,7 @@ function filterAnalyticCfg(query) {
   const q = query.toLowerCase();
   const filtered = analyticPlans.filter(p => p.name.toLowerCase().includes(q));
   if (!filtered.length) {
-    dd.innerHTML = '<div class="analytic-option empty">Aucun résultat — cliquez 🔄 Charger</div>';
+    dd.innerHTML = '<div class="analytic-option empty">No results — click 🔄 Load</div>';
   } else {
     dd.innerHTML = filtered.map(p =>
       `<div class="analytic-option" onmousedown="selectAnalyticCfg(event,'${p.json.replace(/'/g,'\"')}','${p.name.replace(/'/g,'\"')}')">${p.name}</div>`
@@ -1030,6 +1101,53 @@ function selectAnalyticCfg(e, json, name) {
   document.getElementById('cfg-analytic').value = json;
   document.getElementById('cfg-analytic-search').value = name;
   document.getElementById('cfg-analytic-dd').classList.remove('open');
+}
+
+// ── Download Manual Excel ─────────────────────────────────────────────────────
+function downloadManualExcel() {
+  const cfg = getCfg();
+  const header = {
+    partner:  document.getElementById('m-partner').value.trim(),
+    date:     document.getElementById('m-date').value,
+    due:      document.getElementById('m-due').value,
+    journal:  document.getElementById('m-journal').value.trim() || cfg.journal || 'Vendor Bills',
+    currency: document.getElementById('m-currency').value.trim() || cfg.currency || 'CNY',
+    ref:      document.getElementById('m-ref').value.trim(),
+  };
+  const lines = getManualLines();
+  if (!lines.length) { alert('Please add at least one line.'); return; }
+
+  const headers = [
+    'name', 'partner_id', 'invoice_date', 'invoice_date_due',
+    'journal_id', 'currency_id', 'ref',
+    'invoice_line_ids/product_id', 'invoice_line_ids/name',
+    'invoice_line_ids/account_id', 'invoice_line_ids/analytic_distribution',
+    'invoice_line_ids/quantity', 'invoice_line_ids/price_unit'
+  ];
+
+  const rows = lines.map((line, i) => [
+    i === 0 ? '' : '',           // name - leave blank, Odoo auto-assigns
+    i === 0 ? header.partner  : '',
+    i === 0 ? header.date     : '',
+    i === 0 ? header.due      : '',
+    i === 0 ? header.journal  : '',
+    i === 0 ? header.currency : '',
+    i === 0 ? header.ref      : '',
+    line.product,
+    line.label,
+    line.account,
+    line.analytic || '',         // JSON analytic distribution
+    line.qty,
+    line.price,
+  ]);
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = headers.map((h, i) => ({ wch: i === 10 ? 20 : i <= 6 ? 16 : 22 }));
+  XLSX.utils.book_append_sheet(wb, ws, 'Import');
+
+  const date = header.date || new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, `vendor_bill_${date}.xlsx`);
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
