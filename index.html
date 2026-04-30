@@ -721,7 +721,8 @@ function downloadFixedExcel() {
   // Collect analytic values from dropdowns for missing lines
   parsedLines.forEach(line => {
     if (!line.analytic) {
-      const sel = document.getElementById(`analytic-${line.lineId}`);
+      const safeLineId = 'aid' + String(line.lineId).replace(/[^a-zA-Z0-9]/g, '_');
+      const sel = document.getElementById('analytic-' + safeLineId);
       if (sel && sel.value) line.analytic = sel.value;
     }
   });
