@@ -574,7 +574,7 @@ async function resolveId(cfg, uid, model, field, value, log) {
 async function testConnection() {
   const cfg = getCfg();
   if (!cfg.url || !cfg.db || !cfg.user || !cfg.pass) {
-    alert('Please complete and save the configuration d\'abord.');
+    alert('Please complete and save the configuration first.');
     return;
   }
   const dot  = document.getElementById('conn-dot');
@@ -838,7 +838,7 @@ async function runImport(header, lines, logId, progressId) {
 
   const cfg = getCfg();
   if (!cfg.url || !cfg.db || !cfg.user || !cfg.pass) {
-    log('❌ Configuration incomplète. Allez dans l\'onglet Configuration.', 'err'); return;
+    log('❌ Configuration incomplete. Go to the Configuration tab.', 'err'); return;
   }
 
   try {
@@ -1044,28 +1044,44 @@ function closeAnalyticDropdown(id) {
 }
 
 function filterAnalytic(id, query) {
-  const dd = document.getElementById(`analytic-dd-${id}`);
+  const dd = document.getElementById('analytic-dd-' + id);
   if (!dd) return;
   const q = query.toLowerCase();
-  const filtered = analyticPlans.filter(p => p.name.toLowerCase().includes(q));
+  const filtered = analyticPlans.filter(function(p) { return p.name.toLowerCase().includes(q); });
   if (!filtered.length) {
     dd.innerHTML = '<div class="analytic-option empty">No results</div>';
   } else {
-    dd.innerHTML = '<div class="analytic-option" onmousedown="selectAnalytic(event,' + id + ',\'\',\'-- Aucun --\')"  >— Aucun —</div>' +
-      filtered.map(p =>
-        `<div class="analytic-option" onmousedown="selectAnalytic(event,${id},\'${p.json.replace(/'/g,\"\")}\',\'${p.name.replace(/'/g,\"\")}\')">
-          ${p.name}
-        </div>`
-      ).join('');
+    let items = '<div class="analytic-option" data-json="" data-name="None" onmousedown="pickAnalytic(event,' + id + ')">— None —</div>';
+    filtered.forEach(function(p) {
+      const div = document.createElement('div');
+      div.className = 'analytic-option';
+      div.setAttribute('data-json', p.json);
+      div.setAttribute('data-name', p.name);
+      div.setAttribute('onmousedown', 'pickAnalytic(event,' + id + ')');
+      div.textContent = p.name;
+      items += div.outerHTML;
+    });
+    dd.innerHTML = items;
   }
   dd.classList.add('open');
 }
 
-function selectAnalytic(e, id, json, name) {
+function pickAnalytic(e, id) {
   e.preventDefault();
-  document.getElementById(`analytic-${id}`).value = json;
-  document.getElementById(`analytic-search-${id}`).value = name;
-  document.getElementById(`analytic-dd-${id}`).classList.remove('open');
+  const json = e.currentTarget.getAttribute('data-json');
+  const name = e.currentTarget.getAttribute('data-name');
+  document.getElementById('analytic-' + id).value = json;
+  document.getElementById('analytic-search-' + id).value = name;
+  document.getElementById('analytic-dd-' + id).classList.remove('open');
+}
+
+function pickAnalyticCfg(e) {
+  e.preventDefault();
+  const json = e.currentTarget.getAttribute('data-json');
+  const name = e.currentTarget.getAttribute('data-name');
+  document.getElementById('cfg-analytic').value = json;
+  document.getElementById('cfg-analytic-search').value = name;
+  document.getElementById('cfg-analytic-dd').classList.remove('open');
 }
 
 function navAnalytic(e, id) {
@@ -1085,23 +1101,26 @@ function filterAnalyticCfg(query) {
   const dd = document.getElementById('cfg-analytic-dd');
   if (!dd) return;
   const q = query.toLowerCase();
-  const filtered = analyticPlans.filter(p => p.name.toLowerCase().includes(q));
+  const filtered = analyticPlans.filter(function(p) { return p.name.toLowerCase().includes(q); });
   if (!filtered.length) {
     dd.innerHTML = '<div class="analytic-option empty">No results — click 🔄 Load</div>';
   } else {
-    dd.innerHTML = filtered.map(p =>
-      `<div class="analytic-option" onmousedown="selectAnalyticCfg(event,'${p.json.replace(/'/g,'\"')}','${p.name.replace(/'/g,'\"')}')">${p.name}</div>`
-    ).join('');
+    let items = '';
+    filtered.forEach(function(p) {
+      const div = document.createElement('div');
+      div.className = 'analytic-option';
+      div.setAttribute('data-json', p.json);
+      div.setAttribute('data-name', p.name);
+      div.setAttribute('onmousedown', 'pickAnalyticCfg(event)');
+      div.textContent = p.name;
+      items += div.outerHTML;
+    });
+    dd.innerHTML = items;
   }
   dd.classList.add('open');
 }
 
-function selectAnalyticCfg(e, json, name) {
-  e.preventDefault();
-  document.getElementById('cfg-analytic').value = json;
-  document.getElementById('cfg-analytic-search').value = name;
-  document.getElementById('cfg-analytic-dd').classList.remove('open');
-}
+
 
 // ── Download Manual Excel ─────────────────────────────────────────────────────
 function downloadManualExcel() {
