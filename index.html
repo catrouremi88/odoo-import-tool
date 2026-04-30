@@ -983,7 +983,7 @@ async function loadAnalyticPlans(uid = null) {
     const results = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
       cfg.db, uid, cfg.pass,
       'account.analytic.account', 'search_read',
-      [[]], { fields: ['id', 'name', 'code'], limit: 200 }
+      [[]], { fields: ['id', 'name', 'code'], limit: 0 }
     ]);
     analyticPlans = results.map(r => ({
       id:   r.id,
