@@ -987,38 +987,39 @@ async function loadAnalyticPlans(uid = null) {
   try {
     if (!uid) uid = await odooAuth(cfg);
 
-    // Get all IDs (no filter - we filter client-side)
-    const allIds = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
+    // Get user's company
+    const userInfo = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
       cfg.db, uid, cfg.pass,
-      'account.analytic.account', 'search',
-      [[]], { limit: 0 }
+      'res.users', 'read', [[uid]], { fields: ['company_id'] }
+    ]);
+    const companyId = userInfo[0].company_id[0];
+    const companyName = userInfo[0].company_id[1];
+    console.log('Company:', companyId, companyName);
+
+    // Use search_read with allowed_company_ids context to respect multi-company rules
+    const results = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
+      cfg.db, uid, cfg.pass,
+      'account.analytic.account', 'search_read',
+      [[['company_id', 'in', [companyId, false]]]],
+      {
+        fields: ['id', 'name', 'company_id'],
+        context: { allowed_company_ids: [companyId] },
+        limit: 0
+      }
     ]);
 
-    console.log('Total IDs:', allIds.length);
+    console.log('Total records:', results.length);
 
-    // Read in batches of 500
-    let allRecords = [];
-    const batchSize = 500;
-    for (let i = 0; i < allIds.length; i += batchSize) {
-      const batch = allIds.slice(i, i + batchSize);
-      const results = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
-        cfg.db, uid, cfg.pass,
-        'account.analytic.account', 'read',
-        [batch], { fields: ['id', 'name'] }
-      ]);
-      allRecords = allRecords.concat(results);
-    }
-
-    console.log('Total records read:', allRecords.length);
-
-    // Filter client-side: name must match XX-XXX-00000 at start
+    // Filter client-side: name must match XX-XXX-00000 format, dedupe by name
     const codePattern = /^[A-Z]{2}-[A-Z]{3}-\d{5}/;
-    const seenIds = new Set();
-    analyticPlans = allRecords
+    const seenNames = new Set();
+    analyticPlans = results
       .filter(r => {
-        if (seenIds.has(r.id)) return false;
-        seenIds.add(r.id);
-        return r.name && codePattern.test(r.name.trim());
+        const name = r.name ? r.name.trim() : '';
+        if (!codePattern.test(name)) return false;
+        if (seenNames.has(name)) return false;
+        seenNames.add(name);
+        return true;
       })
       .map(r => ({
         id:   r.id,
