@@ -307,7 +307,7 @@
                 onblur="setTimeout(()=>document.getElementById('cfg-analytic-dd').classList.remove('open'),200)" />
               <div class="analytic-dropdown" id="cfg-analytic-dd"></div>
             </div>
-            <button class="btn btn-secondary" style="padding:8px 14px;font-size:11px" onclick="loadAnalyticPlans()">🔄 Charger</button>
+            <button class="btn btn-secondary" style="padding:8px 14px;font-size:11px" id="btn-load-analytic" onclick="loadAnalyticPlansUI()">🔄 Load</button>
           </div>
           <input type="hidden" id="cfg-analytic" />
         </div>
@@ -1173,6 +1173,27 @@ function downloadManualExcel() {
 
   const date = header.date || new Date().toISOString().split('T')[0];
   XLSX.writeFile(wb, `vendor_bill_${date}.xlsx`);
+}
+
+// ── Load analytic with UI feedback ───────────────────────────────────────────
+async function loadAnalyticPlansUI() {
+  const btn = document.getElementById('btn-load-analytic');
+  const search = document.getElementById('cfg-analytic-search');
+  btn.disabled = true;
+  btn.textContent = '⏳ Loading...';
+  search.placeholder = '⏳ Loading analytic plans...';
+  try {
+    const cfg = getCfg();
+    const uid = await odooAuth(cfg);
+    await loadAnalyticPlans(uid);
+    btn.textContent = '✅ ' + analyticPlans.length + ' loaded';
+    search.placeholder = '🔍 Search analytic plan...';
+    setTimeout(() => { btn.textContent = '🔄 Load'; btn.disabled = false; }, 3000);
+  } catch(e) {
+    btn.textContent = '❌ Error';
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '🔄 Load'; }, 3000);
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
