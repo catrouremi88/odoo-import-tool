@@ -203,6 +203,98 @@
 
   .result-link { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--accent); text-decoration: underline; }
 
+  /* ── Login page ── */
+  #login-page {
+    position: fixed; inset: 0; z-index: 999;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #login-page::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .login-box {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 480px;
+    padding: 0 24px;
+  }
+  .login-logo { text-align: center; margin-bottom: 32px; }
+  .login-logo-icon {
+    width: 56px; height: 56px; background: var(--accent);
+    border-radius: 14px; display: inline-flex;
+    align-items: center; justify-content: center;
+    font-size: 28px; margin-bottom: 12px;
+  }
+  .login-logo-title { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+  .login-logo-title span { color: var(--accent); }
+  .login-logo-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  /* Profile cards */
+  .profiles-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .profile-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 20px;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .profile-card:hover { border-color: var(--accent); transform: translateX(4px); }
+  .profile-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--accent); display: flex;
+    align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .profile-info { flex: 1; }
+  .profile-name { font-weight: 700; font-size: 14px; }
+  .profile-meta { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
+  .profile-actions { display: flex; gap: 6px; }
+  .profile-btn {
+    width: 28px; height: 28px; border-radius: 6px; border: none;
+    background: var(--surface2); color: var(--muted);
+    cursor: pointer; font-size: 13px; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .profile-btn:hover { background: var(--accent); color: white; }
+  .profile-btn.del:hover { background: var(--danger); color: white; }
+
+  .new-profile-btn {
+    width: 100%; padding: 12px; border-radius: 10px;
+    border: 2px dashed var(--border); background: transparent;
+    color: var(--muted); font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; letter-spacing: 0.05em;
+  }
+  .new-profile-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Profile form */
+  .profile-form {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px; margin-top: 12px;
+    display: none;
+  }
+  .profile-form.open { display: block; animation: fadeIn 0.2s ease; }
+  .profile-form-title {
+    font-size: 13px; font-weight: 700; color: var(--accent);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    font-family: 'DM Mono', monospace; margin-bottom: 16px;
+  }
+
+  /* Password prompt */
+  .pass-prompt {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px;
+    display: none; margin-top: 12px;
+  }
+  .pass-prompt.open { display: block; animation: fadeIn 0.2s ease; }
+  .pass-profile-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .pass-profile-meta { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 16px; }
+
   /* ── Searchable dropdown ── */
   .analytic-wrapper { position: relative; display: inline-block; }
   .analytic-search {
@@ -228,7 +320,81 @@
 </style>
 </head>
 <body>
-<div class="app">
+<!-- ══ LOGIN PAGE ══ -->
+<div id="login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">📥</div>
+      <div class="login-logo-title">Odoo <span>Import</span></div>
+      <div class="login-logo-sub">Vendor Bill Import Tool</div>
+    </div>
+
+    <div id="profiles-section">
+      <div class="profiles-grid" id="profiles-grid"></div>
+      <button class="new-profile-btn" onclick="showNewProfileForm()">＋ Add new profile</button>
+    </div>
+
+    <div class="profile-form" id="profile-form">
+      <div class="profile-form-title" id="form-title">// New Profile</div>
+      <input type="hidden" id="edit-profile-id" />
+      <div class="form-grid" style="margin-bottom:16px">
+        <div class="form-group full">
+          <label>Profile Name</label>
+          <input type="text" id="pf-name" placeholder="e.g. China, Hong Kong..." />
+        </div>
+        <div class="form-group full">
+          <label>Odoo URL</label>
+          <input type="text" id="pf-url" placeholder="https://altios-china.run-odoo.com" />
+        </div>
+        <div class="form-group">
+          <label>Database</label>
+          <input type="text" id="pf-db" placeholder="china" />
+        </div>
+        <div class="form-group">
+          <label>Company ID</label>
+          <input type="number" id="pf-company" placeholder="3" />
+        </div>
+        <div class="form-group">
+          <label>Default Journal</label>
+          <input type="text" id="pf-journal" placeholder="Vendor Bills" />
+        </div>
+        <div class="form-group">
+          <label>Default Currency</label>
+          <input type="text" id="pf-currency" placeholder="CNY" />
+        </div>
+        <div class="form-group full">
+          <label>Default Account</label>
+          <input type="text" id="pf-account" placeholder="640100" />
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveProfile()">💾 Save Profile</button>
+        <button class="btn btn-secondary" onclick="hideProfileForm()">Cancel</button>
+      </div>
+    </div>
+
+    <div class="pass-prompt" id="pass-prompt">
+      <div class="pass-profile-name" id="pass-profile-name"></div>
+      <div class="pass-profile-meta" id="pass-profile-meta"></div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Email</label>
+        <input type="email" id="pass-email" placeholder="your@email.com" />
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label>Password</label>
+        <input type="password" id="pass-password" placeholder="••••••••"
+          onkeydown="if(event.key==='Enter') loginWithProfile()" />
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="loginWithProfile()">🚀 Connect</button>
+        <button class="btn btn-secondary" onclick="cancelLogin()">← Back</button>
+      </div>
+      <div id="login-error" style="display:none;margin-top:12px" class="alert alert-error"></div>
+    </div>
+  </div>
+</div>
+
+<div class="app" style="display:none">
 
   <!-- Header -->
   <div class="header">
@@ -236,8 +402,15 @@
       <div class="logo-icon">📥</div>
       <div class="logo-text">Odoo Tools</div>
     </div>
-    <h1>Vendor Bill <span>Import</span></h1>
-    <p class="subtitle">Create multi-line vendor bills in Odoo from an Excel file.</p>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <h1>Vendor Bill <span>Import</span></h1>
+        <p class="subtitle">Create multi-line vendor bills in Odoo from an Excel file.</p>
+      </div>
+      <button class="btn btn-secondary" style="font-size:11px;padding:8px 14px;margin-top:8px" onclick="logout()">
+        <span id="current-profile-name"></span> ↩ Logout
+      </button>
+    </div>
   </div>
 
   <!-- Tabs -->
@@ -1290,14 +1463,200 @@ async function loadCompanies() {
   }
 }
 
+// ── Profile Management ───────────────────────────────────────────────────────
+let currentProfileId = null;
+
+function getProfiles() {
+  return JSON.parse(localStorage.getItem('odoo_profiles') || '[]');
+}
+
+function saveProfiles(profiles) {
+  localStorage.setItem('odoo_profiles', JSON.stringify(profiles));
+}
+
+function renderProfiles() {
+  const profiles = getProfiles();
+  const grid = document.getElementById('profiles-grid');
+  if (!profiles.length) {
+    grid.innerHTML = '<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">No profiles yet — add one below</p>';
+    return;
+  }
+  const icons = ['🇨🇳','🇭🇰','🇸🇬','🇫🇷','🇬🇧','🌏','🏢','💼'];
+  grid.innerHTML = profiles.map((p, i) => `
+    <div class="profile-card" onclick="selectProfile(${i})">
+      <div class="profile-icon">${icons[i % icons.length]}</div>
+      <div class="profile-info">
+        <div class="profile-name">${p.name}</div>
+        <div class="profile-meta">${p.db} · ${p.url.replace('https://','')}</div>
+      </div>
+      <div class="profile-actions" onclick="event.stopPropagation()">
+        <button class="profile-btn" onclick="editProfile(${i})" title="Edit">✏️</button>
+        <button class="profile-btn del" onclick="deleteProfile(${i})" title="Delete">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+function showNewProfileForm() {
+  document.getElementById('edit-profile-id').value = '';
+  document.getElementById('form-title').textContent = '// New Profile';
+  document.getElementById('pf-name').value = '';
+  document.getElementById('pf-url').value = '';
+  document.getElementById('pf-db').value = '';
+  document.getElementById('pf-company').value = '';
+  document.getElementById('pf-journal').value = 'Vendor Bills';
+  document.getElementById('pf-currency').value = 'CNY';
+  document.getElementById('pf-account').value = '';
+  document.getElementById('profile-form').classList.add('open');
+  document.getElementById('pass-prompt').classList.remove('open');
+}
+
+function hideProfileForm() {
+  document.getElementById('profile-form').classList.remove('open');
+}
+
+function editProfile(idx) {
+  const profiles = getProfiles();
+  const p = profiles[idx];
+  document.getElementById('edit-profile-id').value = idx;
+  document.getElementById('form-title').textContent = '// Edit Profile';
+  document.getElementById('pf-name').value = p.name || '';
+  document.getElementById('pf-url').value = p.url || '';
+  document.getElementById('pf-db').value = p.db || '';
+  document.getElementById('pf-company').value = p.company || '';
+  document.getElementById('pf-journal').value = p.journal || 'Vendor Bills';
+  document.getElementById('pf-currency').value = p.currency || 'CNY';
+  document.getElementById('pf-account').value = p.account || '';
+  document.getElementById('profile-form').classList.add('open');
+  document.getElementById('pass-prompt').classList.remove('open');
+}
+
+function saveProfile() {
+  const name = document.getElementById('pf-name').value.trim();
+  const url  = document.getElementById('pf-url').value.trim().replace(/\/$/, '');
+  const db   = document.getElementById('pf-db').value.trim();
+  if (!name || !url || !db) { alert('Name, URL and Database are required.'); return; }
+
+  const profiles = getProfiles();
+  const editIdx = document.getElementById('edit-profile-id').value;
+  const profile = {
+    name, url, db,
+    company:  document.getElementById('pf-company').value.trim(),
+    journal:  document.getElementById('pf-journal').value.trim() || 'Vendor Bills',
+    currency: document.getElementById('pf-currency').value.trim() || 'CNY',
+    account:  document.getElementById('pf-account').value.trim(),
+  };
+
+  if (editIdx !== '') {
+    profiles[parseInt(editIdx)] = profile;
+  } else {
+    profiles.push(profile);
+  }
+  saveProfiles(profiles);
+  hideProfileForm();
+  renderProfiles();
+}
+
+function deleteProfile(idx) {
+  if (!confirm('Delete this profile?')) return;
+  const profiles = getProfiles();
+  profiles.splice(idx, 1);
+  saveProfiles(profiles);
+  renderProfiles();
+}
+
+function selectProfile(idx) {
+  const profiles = getProfiles();
+  const p = profiles[idx];
+  currentProfileId = idx;
+  hideProfileForm();
+  document.getElementById('pass-profile-name').textContent = p.name;
+  document.getElementById('pass-profile-meta').textContent = p.db + ' · ' + p.url.replace('https://','');
+  document.getElementById('pass-email').value = '';
+  document.getElementById('pass-password').value = '';
+  document.getElementById('login-error').style.display = 'none';
+  document.getElementById('pass-prompt').classList.add('open');
+  setTimeout(() => document.getElementById('pass-email').focus(), 100);
+}
+
+function cancelLogin() {
+  document.getElementById('pass-prompt').classList.remove('open');
+  currentProfileId = null;
+}
+
+async function loginWithProfile() {
+  const profiles = getProfiles();
+  const p = profiles[currentProfileId];
+  const email = document.getElementById('pass-email').value.trim();
+  const pass  = document.getElementById('pass-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+
+  if (!email || !pass) { errEl.textContent = 'Please enter email and password.'; errEl.style.display = 'block'; return; }
+
+  const btn = document.querySelector('#pass-prompt .btn-success');
+  btn.disabled = true; btn.textContent = '⏳ Connecting...';
+
+  try {
+    // Store credentials temporarily for auth
+    const cfg = { url: p.url, db: p.db, user: email, pass, company: p.company,
+                  journal: p.journal, currency: p.currency, account: p.account, analytic: '' };
+    localStorage.setItem('odoo_cfg', JSON.stringify(cfg));
+
+    const uid = await odooAuth(cfg);
+
+    // Save email to profile for convenience
+    profiles[currentProfileId].lastEmail = email;
+    saveProfiles(profiles);
+
+    // Update UI
+    document.getElementById('current-profile-name').textContent = p.name;
+    document.getElementById('login-page').style.display = 'none';
+    document.querySelector('.app').style.display = 'block';
+
+    // Pre-fill config tab
+    document.getElementById('cfg-url').value      = p.url;
+    document.getElementById('cfg-db').value       = p.db;
+    document.getElementById('cfg-user').value     = email;
+    document.getElementById('cfg-pass').value     = pass;
+    document.getElementById('cfg-company').value  = p.company || '';
+    document.getElementById('cfg-journal').value  = p.journal || 'Vendor Bills';
+    document.getElementById('cfg-currency').value = p.currency || 'CNY';
+    document.getElementById('cfg-account').value  = p.account || '';
+
+    // Update conn status
+    document.getElementById('conn-dot').className = 'status-dot dot-ok';
+    document.getElementById('conn-text').textContent = `Connected ✓ (uid=${uid})`;
+    document.getElementById('conn-text').style.color = 'var(--accent2)';
+
+    // Auto-load analytic plans
+    await loadAnalyticPlans(uid);
+
+  } catch(e) {
+    errEl.textContent = 'Error: ' + e.message;
+    errEl.style.display = 'block';
+    localStorage.removeItem('odoo_cfg');
+  }
+  btn.disabled = false; btn.textContent = '🚀 Connect';
+}
+
+function logout() {
+  localStorage.removeItem('odoo_cfg');
+  document.getElementById('login-page').style.display = 'flex';
+  document.querySelector('.app').style.display = 'none';
+  document.getElementById('pass-prompt').classList.remove('open');
+  currentProfileId = null;
+  renderProfiles();
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
-loadConfig();
 // Pre-fill manual dates
 const today = new Date().toISOString().split('T')[0];
 document.getElementById('m-date').value = today;
 document.getElementById('m-due').value = today;
 // Add default manual line
 addLine();
+// Show login page
+renderProfiles();
 </script>
 </body>
 </html>
