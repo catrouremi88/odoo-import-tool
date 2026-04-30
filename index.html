@@ -352,7 +352,11 @@
         </div>
         <div class="form-group">
           <label>Company ID</label>
-          <input type="number" id="pf-company" placeholder="3" />
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="number" id="pf-company" placeholder="3" style="flex:1" />
+            <button class="btn btn-secondary" style="padding:8px 14px;font-size:11px;white-space:nowrap" onclick="browseCompaniesInForm()">🏢 Browse</button>
+          </div>
+          <div id="pf-company-list" style="display:none;margin-top:8px;max-height:150px;overflow-y:auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px"></div>
         </div>
         <div class="form-group">
           <label>Default Journal</label>
@@ -1494,6 +1498,43 @@ function renderProfiles() {
         <button class="profile-btn del" onclick="deleteProfile(${i})" title="Delete">🗑️</button>
       </div>
     </div>`).join('');
+}
+
+async function browseCompaniesInForm() {
+  const url = document.getElementById('pf-url').value.trim().replace(/\/$/, '');
+  const db  = document.getElementById('pf-db').value.trim();
+  const listEl = document.getElementById('pf-company-list');
+  if (!url || !db) { alert('Please fill in URL and Database first.'); return; }
+
+  // Ask for credentials temporarily
+  const email = prompt('Email (to fetch companies):');
+  if (!email) return;
+  const pass = prompt('Password:');
+  if (!pass) return;
+
+  listEl.style.display = 'block';
+  listEl.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:6px">⏳ Loading...</div>';
+
+  try {
+    const tmpCfg = { url, db, user: email, pass };
+    const uid = await odooAuth(tmpCfg);
+    const companies = await xmlrpcCall(`${url}/xmlrpc/2/object`, 'execute_kw', [
+      db, uid, pass, 'res.company', 'search_read', [[]],
+      { fields: ['id', 'name'], limit: 50 }
+    ]);
+    listEl.innerHTML = companies.map(c =>
+      `<div style="padding:7px 10px;cursor:pointer;border-radius:6px;font-size:12px;
+        font-family:monospace;transition:background 0.15s"
+        onmouseover="this.style.background='var(--accent)';this.style.color='white'"
+        onmouseout="this.style.background='';this.style.color=''"
+        onclick="document.getElementById('pf-company').value=${c.id};
+                 document.getElementById('pf-company-list').style.display='none'">
+        <b>${c.id}</b> — ${c.name}
+      </div>`
+    ).join('');
+  } catch(e) {
+    listEl.innerHTML = '<div style="color:var(--danger);font-size:12px;padding:6px">Error: ' + e.message + '</div>';
+  }
 }
 
 function showNewProfileForm() {
