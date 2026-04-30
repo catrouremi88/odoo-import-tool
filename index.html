@@ -980,36 +980,42 @@ async function loadAnalyticPlans(uid = null) {
   if (!cfg.url || !cfg.db || !cfg.user || !cfg.pass) return;
   try {
     if (!uid) uid = await odooAuth(cfg);
-    const results = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
-      cfg.db, uid, cfg.pass,
-      'account.analytic.account', 'search_read',
-      [[]], { fields: ['id', 'name', 'code'], limit: 0 }
-    ]);
-    analyticPlans = results.map(r => ({
+    // Paginate to get all records
+    let allPlans = [];
+    let offset = 0;
+    const pageSize = 200;
+    while (true) {
+      const results = await xmlrpcCall(`${cfg.url}/xmlrpc/2/object`, 'execute_kw', [
+        cfg.db, uid, cfg.pass,
+        'account.analytic.account', 'search_read',
+        [[]], { fields: ['id', 'name', 'code'], limit: pageSize, offset: offset }
+      ]);
+      if (!results || results.length === 0) break;
+      allPlans = allPlans.concat(results);
+      if (results.length < pageSize) break;
+      offset += pageSize;
+    }
+
+    analyticPlans = allPlans.map(r => ({
       id:   r.id,
-      name: r.code ? `${r.code} - ${r.name}` : r.name,
+      name: r.code ? r.code + ' - ' + r.name : r.name,
       json: JSON.stringify({[String(r.id)]: 100.0})
     }));
 
-    // Populate config select
-    const sel = document.getElementById('cfg-analytic-select');
+    // Populate config searchable dropdown
     const currentJson = document.getElementById('cfg-analytic').value;
-    sel.innerHTML = '<option value="">-- Aucun --</option>' +
-      analyticPlans.map(p => `<option value="${p.json}" ${p.json === currentJson ? 'selected' : ''}>${p.name}</option>`).join('');
+    const currentPlan = analyticPlans.find(p => p.json === currentJson);
+    if (currentPlan) document.getElementById('cfg-analytic-search').value = currentPlan.name;
+    filterAnalyticCfg('');
 
-    sel.onchange = () => {
-      document.getElementById('cfg-analytic').value = sel.value;
-    };
-    if (sel.value) document.getElementById('cfg-analytic').value = sel.value;
-
-    // Refresh all analytic selects in manual lines
-    document.querySelectorAll('.analytic-select').forEach(s => {
-      const current = s.value;
-      s.innerHTML = '<option value="">-- Aucun --</option>' +
-        analyticPlans.map(p => `<option value="${p.json}" ${p.json === current ? 'selected' : ''}>${p.name}</option>`).join('');
+    // Refresh hidden analytic selects in manual lines
+    document.querySelectorAll('.analytic-search').forEach(function(inp) {
+      const lineId = inp.id.replace('analytic-search-', '');
+      if (lineId === 'cfg') return;
+      filterAnalytic(lineId, inp.value);
     });
 
-    console.log(`Loaded ${analyticPlans.length} analytic plans`);
+    console.log('Loaded ' + analyticPlans.length + ' analytic plans');
   } catch(e) {
     console.warn('Could not load analytic plans:', e.message);
   }
